@@ -1,11 +1,63 @@
-import React from 'react'
-import { GoogleAuthProvider,signInWithRedirect } from 'firebase/auth'
+import React, { useCallback, useState } from 'react'
+import { GoogleAuthProvider,signInWithRedirect,createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
+interface ISignUpFormData {
+    fullname:string,
+    email:string,
+    password:string,
+    username:string
+}
+const initialSignUpFormData = {
+    fullname:'',
+    email:'',
+    password:'',
+    username:''
+}
+const actionCodeSettings = {
+    // URL you want to redirect back to. The domain (www.example.com) for this
+    // URL must be in the authorized domains list in the Firebase Console.
+    url: import.meta.env.VITE_FRONT_END_URL as string,
+    // This must be true.
+    handleCodeInApp: true,
+    iOS: {
+      bundleId: 'com.example.ios'
+    },
+    android: {
+      packageName: 'com.example.android',
+      installApp: true,
+      minimumVersion: '12'
+    },
+    dynamicLinkDomain: 'example.page.link'
+  };
 const SignUp = () => {
   const provider = new GoogleAuthProvider();
-  
+  const [signUpFormData,setFormData] = useState<ISignUpFormData>(initialSignUpFormData)
+  const navigate = useNavigate()
+  const signUpOperation = useCallback(() => {
+    if(!signUpFormData || signUpFormData.email==='' || signUpFormData.password==='') return
+    console.log('Signup')
+
+    
+    createUserWithEmailAndPassword(auth,signUpFormData.email,signUpFormData.password)
+        .then((userCredentials)=>{
+            console.log("New user created sucesfully!",userCredentials)
+        })
+        .catch((error)=>{
+            console.log("Create user with email and password error!",error)
+        })
+  },[signUpFormData,setFormData])
+  const handleOnChange = (event) => {
+    event.preventDefault();
+    setFormData((prev)=>{
+        // console.log(prev[event.target.name])
+        return {
+            ...prev,
+            [event.target.name]:event.target.value
+        }
+    })
+  }
   return (
     <div>
         <div className="h-screen bg-gray-50 flex flex-col justify-center items-center">
@@ -27,22 +79,30 @@ const SignUp = () => {
                 <form className="mt-8 w-64 flex flex-col">
                     <input 
                         className="text-xs w-full mb-2 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
-                        id="email" placeholder="Email" type="text"/>
+                        id="email" name='email' placeholder="Email" type="text"
+                        value={signUpFormData.email}
+                        onChange={handleOnChange}/>
                     <input 
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
-                        id="fullname" placeholder="Full Name" type="text"/>
+                        id="fullname" name='fullname' placeholder="Full Name" type="text"
+                        value={signUpFormData.fullname}
+                        onChange={handleOnChange}/>
                     <input 
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
-                        id="username" placeholder="User Name" type="text"/>
+                        id="username" name="username" placeholder="User Name" type="text"
+                        value={signUpFormData.username}
+                        onChange={handleOnChange}/>
                     <input 
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
-                        id="password" placeholder="Password" type="password"/>
-                    <a className=" text-sm text-center bg-blue-300 text-white py-1 rounded font-medium">
+                        id="password" name="password" placeholder="Password" type="password"
+                        value={signUpFormData.password}
+                        onChange={handleOnChange}/>
+                    <button 
+                        className=" text-sm text-center bg-blue-500 text-white py-1 rounded font-medium"
+                        onClick={(event)=>{event.preventDefault(); signUpOperation()}}>
                         Sign up
-                    </a>
+                    </button>
                 </form>
-                
-                
             </div>
             <div className="bg-white border border-gray-300 text-center w-80 py-4">
                 <span className="text-sm">Don't have an account?</span>
