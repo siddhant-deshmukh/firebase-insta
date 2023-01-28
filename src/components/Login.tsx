@@ -74,7 +74,7 @@ const Login = () => {
                     <img src="/google-logo.svg" className="h-4 mr-2" alt="Instagram" />
                     <span className="text-xs text-gray-600 font-semibold group-hover:underline">Continue with Google</span>
                 </button>
-                <a className="text-xs text-blue-900 mt-4 cursor-pointer -mb-4">Forgot password?</a>
+                <Link to={'/forgetpassword'} className="text-xs text-blue-900 mt-4 cursor-pointer -mb-4">Forgot password?</Link>
             </div>
             <div className="bg-white border border-gray-300 text-center w-80 py-4">
                 <span className="text-sm">Don't have an account?</span>

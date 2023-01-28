@@ -4,43 +4,78 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 admin.initializeApp();
 
-// Take the text parameter passed to this HTTP endpoint and insert it into
-// Firestore under the path /messages/:documentId/original
-exports.addMessage = functions.https.onRequest(async (req, res) => {
-  // Grab the text parameter.
-  const original = req.query.text;
-  // Push the new message into Firestore using the Firebase Admin SDK.
-  const writeResult = await admin.firestore()
-      .collection("messages")
-      .add({original: original});
-  // Send back a message that we"ve successfully written the message
-  res.json({result: `Message with ID: ${writeResult.id} added.`});
-});
+exports.afterAuthUser = functions
+    .region("asia-south1")
+    .auth.user().onCreate((user)=>{
+      const newUser = {
+        name: user.displayName || "",
+        avatar: user.photoURL || "",
+        about: "",
+        username: "",
+        // posts: [],
+        // stories: [],
+        // following: [],
+        // followers: [],
+        authComplete: false,
+      };
 
-// Listens for new messages added to /messages/:documentId/original and creates
-// uppercase version of the message to /messages/:documentId/uppercase
-exports.makeUppercase = functions.firestore.document("/messages/{documentId}")
-    .onCreate((snap, context) => {
-      // Grab the current value of what was written to Firestore.
-      const original = snap.data().original;
-
-      // Access the parameter `{documentId}` with `context.params`
-      functions.logger.log("Uppercasing", context.params.documentId, original);
-
-      const uppercase = original.toUpperCase();
-
-      // You must return a Promise when performing asynchronous tasks
-      // inside a Functions such as writing to Firestore.
-      // Setting an "uppercase" field in Firestore document returns a Promise.
-      return snap.ref.set({uppercase}, {merge: true});
+      const collectionRef = admin.firestore().doc(`users/${user.uid}`)
+          .create(newUser);
+      return collectionRef;
     });
-
-// exports.beforeCreate = functions.auth.user().beforeCreate((user, context) => {
-//   const locale = context.locale;
-//   if (user.email && !user.emailVerified) {
-//     // Send custom email verification on sign-up.
-//     return admin.auth().generateEmailVerificationLink(user.email).then((link) => {
-//       return sendCustomVerificationEmail(user.email, link, locale);
-//     });
-//   }
-// });
+exports.followingAccountTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/users/{userId}/following/{followingToId}")
+    .onCreate(async (snap, context)=>{
+      // functions.logger.log("followed someone", snap, context);
+      // console.log("Snap", snap);
+      // console.log("Context", context);
+      const userId : string = context.params.userId;
+      const followingToId = context.params.followingToId;
+      const documentRef = admin.firestore()
+          .doc(`users/${followingToId}/followers/${userId}`)
+          .create({exists: true});
+      return documentRef;
+    });
+exports.unFollowingAccountTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/users/{userId}/following/{followingToId}")
+    .onDelete(async (snap, context)=>{
+      // functions.logger.log("followed someone", snap, context);
+      // console.log("Snap", snap);
+      // console.log("Context", context);
+      const userId = context.params.userId;
+      const followingToId = context.params.followingToId;
+      const documentRef = admin.firestore()
+          .doc(`users/${followingToId}/followers/${userId}`)
+          .delete();
+      return documentRef;
+    });
+exports.newPostCreatedTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/posts/{postId}")
+    .onCreate(async (snap, context)=>{
+      // functions.logger.log("created new post", snap, context);
+      const postId = context.params.postId;
+      const authorId = snap.data().authorId;
+      console.log("Snap", snap);
+      console.log("Context", context);
+      const documentRef = admin.firestore()
+          .doc(`users/${authorId}/posts/${postId}`)
+          .create({exists: true});
+      return documentRef;
+    });
+exports.newStoryCreatedTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/stories/{storyId}")
+    .onCreate(async (snap, context)=>{
+      // functions.logger.log("created new post", snap, context);
+      const storyId = context.params.storyId;
+      const authorId = snap.data().authorId;
+      console.log("Snap", snap);
+      console.log("Context", context);
+      const documentRef = admin.firestore()
+          .doc(`users/${authorId}/stories/${storyId}`)
+          .create({exists: true});
+      return documentRef;
+    });

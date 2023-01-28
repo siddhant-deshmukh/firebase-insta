@@ -1,20 +1,22 @@
 import React, { useContext, useEffect, useState } from "react";
-import { auth } from "../firebase";
+import { auth,db } from "../firebase";
 import { onAuthStateChanged, isSignInWithEmailLink,signInWithEmailLink, User } from "firebase/auth"
-
+import { collection, query, where,  getDocs } from "firebase/firestore"
 
 export interface IAuthState{
     authenticated:'Yes'|'No'|'Partial',
     user?: User
 }
 export interface IAuthContext{
-    authState:IAuthState
+    authState:IAuthState,
+    authLoading:'Yes'|'No' | 'initial',
 }
 const initialAuthState : IAuthState = {
     authenticated:'No'
 }
 const initialContext : IAuthContext = {
-    authState:initialAuthState
+    authState:initialAuthState,
+    authLoading:'initial',
 }
 export const AppContext = React.createContext<IAuthContext>(initialContext);
 
@@ -23,17 +25,31 @@ export const AppProvider= ({children}) => {
 
     // const user = auth.currentUser;
     const [authState,setAuthState] = useState<IAuthState>(initialAuthState)
-
+    const [authLoading,setAuthLoading] = useState<'Yes'|'No'| 'initial'>('initial')
     useEffect(()=>{
 
         onAuthStateChanged(auth,(user)=>{
-            console.log('Auth state changed!')
+            setAuthLoading('Yes')
+            console.log('Auth state changed!',user)
             if(user && user.emailVerified){
                 console.log(user)
+                setAuthLoading('No')
+
+                const getUserByEmailQuery = query( collection(db,'users'),  where('email','==',user.email))  
+                getDocs( getUserByEmailQuery ).then((querySnapshot)=>{
+                    console.log(user.email)
+                    querySnapshot.forEach((doc) => {
+                        // doc.data() is never undefined for query doc snapshots
+                        console.log(doc.id, " => ", doc.data());
+                      });
+                    console.log("user data", querySnapshot)
+                })
                 setAuthState({
                     authenticated:'Yes',
                     user
                 })
+
+
             }else if(user){
                 console.log("User email not verified!",user.email)
                 if (isSignInWithEmailLink(auth, window.location.href)) {
@@ -63,28 +79,36 @@ export const AppProvider= ({children}) => {
                             authenticated:'Yes',
                             user
                         })
+                        setAuthLoading('No')
                       })
                       .catch((error) => {
-                        console.log("Error!")
+                        console.log("Error to check signinwitheemail!",error)
+                        setAuthState({
+                            authenticated:'Partial',
+                            user
+                        })
+                        setAuthLoading('No')
                       });
-                  }else{
-                      setAuthState({
-                          authenticated:'Partial',
-                          user
-                      })
-                  }
+                }else{
+                    setAuthState({
+                        authenticated:'Partial',
+                        user
+                    })
+                    setAuthLoading('No')
+                }
             }
             else{
                 setAuthState({
                     authenticated:'No',
                 })
+                setAuthLoading('No')
             }
         })
 
         
-    },[])
+    },[setAuthLoading,setAuthState])
     //@ts-ignore
-    return( < AppContext.Provider value={{authState}}>
+    return( < AppContext.Provider value={{authState,authLoading}}>
         {children}
       </ AppContext.Provider >
     );

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { GoogleAuthProvider,signInWithRedirect,createUserWithEmailAndPassword } from 'firebase/auth'
+import { GoogleAuthProvider,signInWithRedirect,createUserWithEmailAndPassword,updateProfile } from 'firebase/auth'
 import { auth } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -38,10 +38,10 @@ const SignUp = () => {
   const signUpOperation = useCallback(() => {
     if(!signUpFormData || signUpFormData.email==='' || signUpFormData.password==='') return
     console.log('Signup')
-
     
     createUserWithEmailAndPassword(auth,signUpFormData.email,signUpFormData.password)
         .then((userCredentials)=>{
+
             console.log("New user created sucesfully!",userCredentials)
         })
         .catch((error)=>{
