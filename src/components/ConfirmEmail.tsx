@@ -27,8 +27,8 @@ const ConfirmEmail = () => {
   const sendLink = useCallback(() => {
     console.log('Here to send the link!',authState?.user?.email)
 
-    if(!authState?.user?.email) return 
-    const email = authState?.user?.email as string
+ 
+    //const email = authState?.user?.email as string
     // sendSignInLinkToEmail(auth, email , actionCodeSettings)
     //     .then(() => {
     //         window.localStorage.setItem('emailForSignIn', email);

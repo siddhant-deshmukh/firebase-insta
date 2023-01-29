@@ -2,16 +2,37 @@
 import * as functions from "firebase-functions";
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
+import {FieldValue} from "firebase-admin/firestore";
 admin.initializeApp();
 
 exports.afterAuthUser = functions
     .region("asia-south1")
-    .auth.user().onCreate((user)=>{
+    .auth.user().onCreate(async (user)=>{
+      let newUserName = user.email?.split("@")[0].slice(0, 5) +
+          Math.floor(Math.random()*10**5).toString();
+      const newDisplayName = user.email?.split("@")[0];
+      const collectionRef_ = admin.firestore().collection("users");
+      let exists = false;
+      for (let i=0; i<10; i++) {
+        exists = false;
+        const querySnapshot= await collectionRef_
+            .where("username", "==", newUserName).get();
+        querySnapshot.forEach((documentSnapshot) => {
+          if (documentSnapshot.data()) exists=true;
+        });
+        if (exists) {
+          console.log(newUserName, "alerady exists!");
+          newUserName = user.email?.split("@")[0].slice(0, 5) +
+            Math.floor(Math.random()*10**5).toString();
+        } else break;
+      }
       const newUser = {
-        name: user.displayName || "",
+        name: user.displayName || newDisplayName,
         avatar: user.photoURL || "",
         about: "",
-        username: "",
+        username: newUserName,
+        numPosts: 0,
+        numStories: 0,
         // posts: [],
         // stories: [],
         // following: [],
@@ -58,12 +79,18 @@ exports.newPostCreatedTrigger = functions
       // functions.logger.log("created new post", snap, context);
       const postId = context.params.postId;
       const authorId = snap.data().authorId;
-      console.log("Snap", snap);
-      console.log("Context", context);
+      // console.log("Snap", snap);
+      // console.log("Context", context);
+      console.log(postId, authorId);
       const documentRef = admin.firestore()
           .doc(`users/${authorId}/posts/${postId}`)
           .create({exists: true});
-      return documentRef;
+      const documentRef2 = admin.firestore()
+          .doc(`users/${authorId}`)
+          .update({
+            "numPosts": FieldValue.increment(1),
+          });
+      return Promise.all([documentRef, documentRef2]);
     });
 exports.newStoryCreatedTrigger = functions
     .region("asia-south1")
@@ -72,10 +99,15 @@ exports.newStoryCreatedTrigger = functions
       // functions.logger.log("created new post", snap, context);
       const storyId = context.params.storyId;
       const authorId = snap.data().authorId;
-      console.log("Snap", snap);
-      console.log("Context", context);
+      // console.log("Snap", snap);
+      // console.log("Context", context);
       const documentRef = admin.firestore()
           .doc(`users/${authorId}/stories/${storyId}`)
           .create({exists: true});
-      return documentRef;
+      const documentRef2 = admin.firestore()
+          .doc(`users/${authorId}`)
+          .update({
+            "numStories": FieldValue.increment(1),
+          });
+      return Promise.all([documentRef, documentRef2]);
     });
