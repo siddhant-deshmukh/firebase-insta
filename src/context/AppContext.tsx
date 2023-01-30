@@ -2,11 +2,11 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { auth,db } from "../firebase";
 import { onAuthStateChanged, isSignInWithEmailLink,signInWithEmailLink, User as UserAuth } from "firebase/auth"
 import { collection, query, where,  getDoc, doc } from "firebase/firestore"
-import { User, UserStored } from "../types";
+import { IUser, IUserStored } from "../types";
 
 export interface IAuthState{
     authenticated:'Yes'|'No'|'Partial',
-    user?: User
+    user?: IUser
 }
 export interface IAuthContext{
     authState:IAuthState,
@@ -29,11 +29,20 @@ export const AppProvider= ({children}) => {
     const [authLoading,setAuthLoading] = useState<'Yes'|'No'| 'initial'>('initial')
 
     const setUserAuthStateFun = useCallback((user : UserAuth | null)=>{
-        if(user && user.emailVerified){
+
+        /**
+         else if(user){
+            setAuthState({
+                authenticated : 'Partial'
+            })
+            setAuthLoading('No')
+        } 
+         */
+        if(user ){ //add && user.emailVerified if want extra 
             const getUserByEmailQuery = doc( db, `users/${user.uid}` )  ;
             getDoc( getUserByEmailQuery ).then((docSnap)=>{
                 console.log(user.email)
-                const data =  docSnap.data() as UserStored;
+                const data =  docSnap.data() as IUserStored;
                 console.log("Set user auth name",data,user)
                 setAuthState({
                     authenticated : 'Yes',
@@ -52,11 +61,6 @@ export const AppProvider= ({children}) => {
             }).finally(()=>{
                 setAuthLoading('No')
             })
-        } else if(user){
-            setAuthState({
-                authenticated : 'Partial'
-            })
-            setAuthLoading('No')
         } else {
             setAuthState({
                 authenticated : 'No'
@@ -70,10 +74,10 @@ export const AppProvider= ({children}) => {
         onAuthStateChanged(auth,(user)=>{
             setAuthLoading('Yes')
             console.log('Auth state changed!',user)
-            let userData : UserStored ;
-            if(user && user.emailVerified){
-                setUserAuthStateFun(user)
-            }else if(user){
+            let userData : IUserStored ;
+            // add  && user.emailVerified if want email verified
+            /**
+             else if(user){
                 console.log("User email not verified!",user.email)
                 if (isSignInWithEmailLink(auth, window.location.href)) {
                     let email = window.localStorage.getItem('emailForSignIn') as string;
@@ -88,6 +92,10 @@ export const AppProvider= ({children}) => {
                         setUserAuthStateFun({...user,emailVerified:false})
                       })
                 }else setUserAuthStateFun({...user,emailVerified:false})
+            }
+             */
+            if(user){
+                setUserAuthStateFun(user)
             }else setUserAuthStateFun(null)
         })
     },[setAuthLoading])

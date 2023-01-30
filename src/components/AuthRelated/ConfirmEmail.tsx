@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect } from 'react'
 import { sendSignInLinkToEmail, signOut, sendEmailVerification, User, ActionCodeSettings, applyActionCode } from 'firebase/auth'
-import { auth } from '../firebase'
-import AppContext from '../context/AppContext';
+import { auth } from '../../firebase'
+import AppContext from '../../context/AppContext';
 
 const actionCodeSettings : ActionCodeSettings = {
     // URL you want to redirect back to. The domain (www.example.com) for this

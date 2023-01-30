@@ -26,32 +26,35 @@ const Modal = () => {
   },[setSearchParams])
 
   const uploadPost = useCallback(async ()=>{
+    console.log("uploading post",mediaFiles)
     const uDoc =  await addDoc(collection(db,'posts'),{
         authorId: authState.user?.uid,
-        createdAt: new Date(),
+        createdAt: Date(),
         numMedia: mediaFiles.length, 
-        desc:descPost 
+        desc:descPost,
+        numLikes:0,
+        numComments:0,
     })
     const postId = uDoc.id
     console.log("Upload post",postId,uDoc)
 
-    mediaFiles.forEach(async(media,index)=>{
-        let currRef = ref(storage,`posts/${postId}_${index}`);
+    mediaFiles.forEach((media,index)=>{
+        let currRef = ref(storage,`posts/${authState.user?.uid}/${postId}/${index}`);
         uploadBytes(currRef,media).then((snapshot)=>{
-            console.log("Uploaded file ", `posts/${postId}_${index}`)
+            console.log("Uploaded file ", `posts/${authState.user?.uid}/${postId}/${index}`,snapshot)
         }).catch((err)=>{
-            console.log("Error to upload",`posts/${postId}_${index}`,err)
+            console.log("Error to upload",`posts/${authState.user?.uid}/${postId}/${index}`,err)
         });
     })
 
   },[mediaFiles,descPost])
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e : React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
   
-  const handleDrop = (e) => {
+  const handleDrop = (e :React.DragEvent<HTMLDivElement> ) => {
     e.preventDefault();
     e.stopPropagation();
     const {files} = e.dataTransfer;
@@ -136,9 +139,9 @@ const Modal = () => {
                         </div>}
                         {
                             (mediaFiles && mediaFiles.length>0) && <div
-                            className='relative flex  w-auto h-full'
+                            className='flex  w-auto h-full'
                             >   
-                                <div className="h-full w-auto">
+                                <div className="h-full relative w-auto">
                                     <img src={mediaUrls[currentIndex]} className='w-fit ' />
                                     <button 
                                         className='absolute inset-y-1/2 h-fit left-0  px-2 w-fit rounded-full bg-white opacity-40'

@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from 'react'
 import { Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
-import ConfirmEmail from './components/ConfirmEmail'
-import { ForgetPassword } from './components/ForgetPassword'
-import Login from './components/Login'
+import ConfirmEmail from './components/AuthRelated/ConfirmEmail'
+import { ForgetPassword } from './components/AuthRelated/ForgetPassword'
+import Login from './components/AuthRelated/Login'
 import Modal from './components/modal'
 import NavBar from './components/NavBar'
-import SignUp from './components/SignUp'
+import SignUp from './components/AuthRelated/SignUp'
 import AppContext, { IAuthContext } from './context/AppContext'
 import Authenticate from './routes/Authenticate'
 import Home from './routes/Home'
@@ -26,8 +26,17 @@ function App() {
     console.log(searchParams.get('modalOn'));
     console.log(searchParams.has('likedby'))
   },[searchParams])
-
-  if(authLoading ==='Yes' || authLoading==='initial'){
+  // remove the partial if want only email verified alloed and add following condition
+  /**
+   else if(authState.authenticated === 'Partial'){
+      return(
+        <div>
+          <ConfirmEmail />
+        </div>
+      )
+    } 
+   */
+  if(authLoading ==='Yes' || authLoading==='initial' || authState.authenticated === 'Partial'){
     return(<div className='w-screen relative h-screen '>
       <div className='mx-auto absolute inset-1/3 w-fit h-fit'>
         <img src='/insta-logo.svg' alt='loading' className='w-52'/>
@@ -40,12 +49,7 @@ function App() {
           <aside className="w-64" aria-label="Sidebar">
             <NavBar />
           </aside>
-          {modalOn}
-          <br/>
-          {location.pathname}
-          <br/> 
-          {JSON.stringify(searchParams)}
-          <br/>
+          
           <Routes>
             <Route index element={<Home/>}/> 
             <Route path="/p/:postId" element={<Post/>}/> 
@@ -63,13 +67,7 @@ function App() {
           }
         </div>
       )
-    }else if(authState.authenticated === 'Partial'){
-      return(
-        <div>
-          <ConfirmEmail />
-        </div>
-      )
-    } else{
+    }else{
       return(
         <div>
           <Routes>

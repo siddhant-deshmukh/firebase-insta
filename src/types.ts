@@ -1,31 +1,37 @@
-export interface UserStored {
+export interface IUserSnippet {
     name : string,
     avatar : string,
     about : string,
-    username : string,
+    username :string,
+}
+export interface IUserStored  extends IUserSnippet{
+    numPosts : number,
+    numStories : number,
     authComplete : boolean,
 }
-export interface User extends UserStored{
+export interface IUser extends IUserStored{
     email : string,
     emailVerified : boolean,
     uid : string,
     no_followers? : number,
     no_following? : number,
 }
-export interface PostContent{
+export interface IPostContent{
     type: 'Image' | 'Video' | 'Gif',
     refrance : '',
 }
-export interface PostStored{
+export interface IPostStored{
     authorId : string,
     desc? : string,
     createdAt : Date,
-    content : [PostContent],
+    numMedia : number,
+    numLikes? : number,
+    numComments?:number,
 }
-export interface Post extends PostStored{
-    author : User,
-    no_likes : number,
-    no_comments : number,
+export interface IPost extends IPostStored{
+    author : IUserSnippet,
+    imgUrls : string[],
+    postId : string,
 }
 export interface CommentStored{
     authorId : string,

@@ -1,8 +1,8 @@
 import React, { useCallback, useContext, useState } from 'react'
 import { GoogleAuthProvider,signInWithRedirect,createUserWithEmailAndPassword,updateProfile } from 'firebase/auth'
-import { auth, db } from '../firebase';
+import { auth, db } from '../../firebase';
 import { Link, useNavigate } from 'react-router-dom';
-import AppContext from '../context/AppContext';
+import AppContext from '../../context/AppContext';
 import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 
 interface ISignUpFormData {
@@ -44,7 +44,7 @@ const CompleteDetails =  () => {
   },[signUpFormData,setFormData])
 
   
-  const handleOnChange = (event) => {
+  const handleOnChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     setFormData((prev)=>{
         // console.log(prev[event.target.name])

@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react'
 import { GoogleAuthProvider,signInWithRedirect,createUserWithEmailAndPassword,updateProfile } from 'firebase/auth'
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface ISignUpFormData {
-    fullname:string,
     email:string,
     password:string,
+    fullname:string,
     username:string
 }
 const initialSignUpFormData = {
@@ -48,7 +48,7 @@ const SignUp = () => {
             console.log("Create user with email and password error!",error)
         })
   },[signUpFormData,setFormData])
-  const handleOnChange = (event) => {
+  const handleOnChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     setFormData((prev)=>{
         // console.log(prev[event.target.name])
@@ -82,7 +82,7 @@ const SignUp = () => {
                         id="email" name='email' placeholder="Email" type="text"
                         value={signUpFormData.email}
                         onChange={handleOnChange}/>
-                    <input 
+                    {/* <input 
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
                         id="fullname" name='fullname' placeholder="Full Name" type="text"
                         value={signUpFormData.fullname}
@@ -91,7 +91,7 @@ const SignUp = () => {
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
                         id="username" name="username" placeholder="User Name" type="text"
                         value={signUpFormData.username}
-                        onChange={handleOnChange}/>
+                        onChange={handleOnChange}/> */}
                     <input 
                         className="text-xs w-full mb-4 rounded border bg-gray-100 border-gray-300 px-2 py-2 focus:outline-none focus:border-gray-400 active:outline-none"
                         id="password" name="password" placeholder="Password" type="password"

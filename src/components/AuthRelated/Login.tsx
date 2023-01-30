@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { GoogleAuthProvider,signInWithRedirect, signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface ILoginFormData {
@@ -29,7 +29,7 @@ const Login = () => {
             console.log("Create user with email and password error!",error)
         })
   },[loginFormData,setFormData])
-  const handleOnChange = (event) => {
+  const handleOnChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     setFormData((prev)=>{
         // console.log(prev[event.target.name])
