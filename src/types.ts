@@ -33,8 +33,17 @@ export interface IPost extends IPostStored{
     imgUrls : string[],
     postId : string,
 }
-export interface CommentStored{
+export interface ICommentStored{
     authorId : string,
     postId : string,
-    parentId : string | null,    
+    parentId : string | null, 
+    level : number,
+    numLikes : number,
+    text: string,
+    numReply: number,
+    createdAt : any,  
+}
+export interface IComment extends ICommentStored{
+    commentId : string,
+    user: IUserSnippet,
 }

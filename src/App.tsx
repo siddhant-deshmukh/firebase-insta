@@ -3,7 +3,6 @@ import { Route, Routes, useLocation, useParams, useSearchParams } from 'react-ro
 import ConfirmEmail from './components/AuthRelated/ConfirmEmail'
 import { ForgetPassword } from './components/AuthRelated/ForgetPassword'
 import Login from './components/AuthRelated/Login'
-import Modal from './components/modal'
 import NavBar from './components/NavBar'
 import SignUp from './components/AuthRelated/SignUp'
 import AppContext, { IAuthContext } from './context/AppContext'
@@ -11,6 +10,9 @@ import Authenticate from './routes/Authenticate'
 import Home from './routes/Home'
 import Post from './routes/Post'
 import UserPage from './routes/UserPage'
+import UploadFile from './components/modal/UploadFile'
+import LikedBy  from './components/modal/LikedBy'
+import PostDisplay from './components/modal/PostDisplay'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -58,12 +60,16 @@ function App() {
           </Routes>
 
           {
-            searchParams.get('modalOn') && 
-            (searchParams.get('modalOn')=='Yes' || 
-              (searchParams.has('likedby') && searchParams.has('postId')) || 
-              (searchParams.has('postId')
-            ) && searchParams.has('viewpost')) && 
-            <Modal />
+            searchParams.get('createPostModal') && 
+            <UploadFile />
+          }
+          {
+            searchParams.get('likedByModal') && searchParams.get('postId') &&
+            <LikedBy />
+          }
+          {
+            searchParams.get('showPostModal') && searchParams.get('postId') &&
+            <PostDisplay />
           }
         </div>
       )

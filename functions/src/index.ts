@@ -77,7 +77,7 @@ exports.newPostCreatedTrigger = functions
     .firestore.document("/posts/{postId}")
     .onCreate(async (snap, context)=>{
       // functions.logger.log("created new post", snap, context);
-      const postId = context.params.postId;
+      const postId : string = context.params.postId;
       const authorId = snap.data().authorId;
       // console.log("Snap", snap);
       // console.log("Context", context);
@@ -91,6 +91,37 @@ exports.newPostCreatedTrigger = functions
             "numPosts": FieldValue.increment(1),
           });
       return Promise.all([documentRef, documentRef2]);
+    });
+exports.postLikedTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/posts/{postId}/likedby/{userLikedId}")
+    .onCreate(async (snap, context)=>{
+      const postId = context.params.postId;
+      // const userLikedId = context.params.userLikedId;
+      // const authorId = snap.data().authorId;
+      // console.log("Snap", snap);
+      // console.log("Context", context);
+      // console.log("The data seen from here", snap.data());
+      // console.log(postId, authorId);
+      const documentRef = admin.firestore()
+          .doc(`posts/${postId}`)
+          .update({
+            "numLikes": FieldValue.increment(1),
+          });
+      return documentRef;
+    });
+
+exports.postDisLikedTrigger = functions
+    .region("asia-south1")
+    .firestore.document("/posts/{postId}/likedby/{userLikedId}")
+    .onDelete(async (snap, context)=>{
+      const postId = context.params.postId;
+      const documentRef = admin.firestore()
+          .doc(`posts/${postId}`)
+          .update({
+            "numLikes": FieldValue.increment(-1),
+          });
+      return documentRef;
     });
 exports.newStoryCreatedTrigger = functions
     .region("asia-south1")
