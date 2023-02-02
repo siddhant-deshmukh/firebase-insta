@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import AppContext from '../../context/AppContext';
@@ -25,14 +25,16 @@ const UploadFile = () => {
 
   const uploadPost = useCallback(async ()=>{
     console.log("uploading post",mediaFiles)
-    const uDoc =  await addDoc(collection(db,'posts'),{
+    const post_ = {
         authorId: authState.user?.uid,
-        createdAt: Date(),
+        createdAt: Timestamp.fromDate(new Date()),
         numMedia: mediaFiles.length, 
         desc:descPost,
         numLikes:0,
         numComments:0,
-    })
+    }
+    console.log("Uploading",post_)
+    const uDoc =  await addDoc(collection(db,'posts'),post_)
     const postId = uDoc.id
     console.log("Upload post",postId,uDoc)
 

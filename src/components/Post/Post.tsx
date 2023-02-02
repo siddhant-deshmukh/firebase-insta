@@ -1,6 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, query, setDoc, Timestamp } from 'firebase/firestore';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
 import { IPost } from '../../types'
@@ -50,7 +50,10 @@ export const Post = ({ post } : {post: IPost}) => {
     <div className="bg-gray-100 p-4">
         <div className="bg-white border rounded-sm max-w-md">
             <div className="flex items-center px-4 py-3">
-                <div className='group w-fit flex items-center'>
+                <Link 
+                    className='group w-fit flex items-center'
+                    to={`/u/${post.authorId}`}
+                    >
                     <img className="h-8 w-8 rounded-full"
                         src={(!post.author.avatar || post.author.avatar==="")?"/abstract-user.svg":post.author.avatar}
                         />
@@ -58,7 +61,7 @@ export const Post = ({ post } : {post: IPost}) => {
                         <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{post.author.name}</span>
                         <span className="text-gray-600 text-xs block">{post.author.username}</span>
                     </div>
-                </div>
+                </Link>
             </div>
 
             <div className='relative w-full h-fit '>

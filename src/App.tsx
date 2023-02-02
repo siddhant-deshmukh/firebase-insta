@@ -47,28 +47,30 @@ function App() {
   } else {
     if(authState && authState.authenticated ==='Yes'){
       return (
-        <div className="App flex">
-          <aside className="w-64" aria-label="Sidebar">
+        <div className={`App flex h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal'))?"overflow-y-hidden":"overflow-y-auto"}`}>
+          <aside className="w-64 fixed hidden lg:block" aria-label="Sidebar">
             <NavBar />
           </aside>
           
-          <Routes>
-            <Route index element={<Home/>}/> 
-            <Route path="/p/:postId" element={<Post/>}/> 
-            <Route path="/u/:userId" element={<UserPage/>}/> 
-            <Route path="*" element={<Home/>}/> 
-          </Routes>
+          <div className={`w-auto mx-auto`}>
+            <Routes>
+              <Route index element={<Home/>}/> 
+              <Route path="/p/:postId" element={<Post/>}/> 
+              <Route path="/u/:userId" element={<UserPage/>}/> 
+              <Route path="*" element={<Home/>}/> 
+            </Routes>
+          </div>
 
           {
             searchParams.get('createPostModal') && 
             <UploadFile />
           }
           {
-            searchParams.get('likedByModal') && searchParams.get('postId') &&
+            searchParams.get('likedByModal') &&
             <LikedBy />
           }
           {
-            searchParams.get('showPostModal') && searchParams.get('postId') &&
+            searchParams.get('showPostModal')  &&
             <PostDisplay />
           }
         </div>

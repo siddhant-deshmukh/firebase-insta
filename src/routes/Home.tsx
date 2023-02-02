@@ -10,7 +10,7 @@ const Home = () => {
 
   const [postFeed,setPostFeed] = useState<IPost[]>([])
   const refreshPosts = useCallback(async() => {
-    const newPostsQuery = query(collection(db,'posts'),orderBy("createdAt"), limit(10));
+    const newPostsQuery = query(collection(db,'posts'),orderBy("createdAt", "desc"), limit(10));
     const documentSnapshots = await getDocs(newPostsQuery)
 
     const getPostDetails = async (postData : IPostStored,postId:string) => {
@@ -46,7 +46,7 @@ const Home = () => {
     refreshPosts()
   },[])
   return (
-    <div>
+    <div className='overflow-y-hidden'>
       Home {import.meta.env.VITE_FRONT_END_URL}
       What is going on!
       {

@@ -7,10 +7,13 @@ import {AppProvider} from './context/AppContext'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   
+   <div >
     <AppProvider>
       <BrowserRouter>
         <App/>
       </BrowserRouter>
     </AppProvider>
+   </div> 
+    
   ,
 )

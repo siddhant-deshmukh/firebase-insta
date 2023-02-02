@@ -33,6 +33,10 @@ export interface IPost extends IPostStored{
     imgUrls : string[],
     postId : string,
 }
+export interface IPostSnippet extends IPostStored{
+    imgUrls : string[],
+    postId : string,
+}
 export interface ICommentStored{
     authorId : string,
     postId : string,
