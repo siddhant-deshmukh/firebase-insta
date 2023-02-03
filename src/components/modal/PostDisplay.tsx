@@ -1,6 +1,7 @@
 import { collection, getDoc, getDocs, limit, orderBy, query, doc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { getDownloadURL, ref } from 'firebase/storage';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { InfiniteData, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 import AppContext from '../../context/AppContext';
 import { db, storage } from '../../firebase';
@@ -15,6 +16,10 @@ export const PostDisplay = () => {
   const { authState } = useContext(AppContext)
   const newCommentRef = useRef<HTMLInputElement | null>(null)
   const postId = searchParams.get('postId')
+  const pageNum = parseInt(searchParams.get('pageNum') || '-1')
+  const index = parseInt(searchParams.get('index') || '-1')
+
+  const queryClient = useQueryClient()
 
   const closeModal = useCallback(()=>{
     setSearchParams((prev)=>{
@@ -86,7 +91,20 @@ export const PostDisplay = () => {
     console.log("commets", commets  )
     return commets
   }
-  const getPost = async ()=>{
+  const getPost =  useCallback( async ()=>{
+    console.log("pageNum index",pageNum,index, typeof pageNum,(pageNum && index && pageNum > -1 && index > -1))
+    if( pageNum > -1 && index > -1){
+      console.log("what is the problem!")
+      const postFeed  : InfiniteData<{
+        data: IPost[];
+        nextPage: number;
+        isLast: boolean;
+      }> | undefined = queryClient.getQueryData('postFeed')
+      const post = postFeed?.pages[pageNum]?.data[index]
+      console.log("Check Post data", post)
+      if(post) return post
+    }
+
     const postDocRef = doc(db,'posts',postId as string)
     const postDocSnap = await getDoc(postDocRef)
     if(postDocSnap.exists()){
@@ -102,19 +120,19 @@ export const PostDisplay = () => {
     }else{
       return null
     }
-  }
+  },[pageNum,index])
 
   useEffect(()=>{
+    getPost().then((value)=>{
+      if(value){
+        setPost(value)
+      }
+    })
     getComments().then((comments)=>{
         setComments((prev)=>{
         console.log("set comments", [...comments,...prev])
         return [...comments,...prev];
       })
-    })
-    getPost().then((value)=>{
-      if(value){
-        setPost(value)
-      }
     })
   },[setComments,setPost])
 
@@ -209,7 +227,7 @@ export const PostDisplay = () => {
               <div className='w-auto h-fit'>
                 <button
                       className="font-semibold w-fit h-fit px-2 hover:underline text-left text-sm mx-4"
-                      onClick={(event)=>{event.preventDefault(); setSearchParams({likedByModal:'Yes',postId:post.postId})}}>
+                      onClick={(event)=>{event.preventDefault(); setSearchParams({ ...searchParams ,likedByModal:'Yes',postId:post.postId})}}>
                     {(post?.numLikes)?post?.numLikes:"0"} likes
                 </button>
               </div>
@@ -288,99 +306,3 @@ export const CommentCard = ({comment}:{comment:IComment}) => {
 }
 
 export default PostDisplay;
-
-/**
- 
-
-allow create : if request.auth.uid == request.resource.data.authorId 
-      	&& get(/databases/$(database)/documents/posts/$(postId)).data.numComments < 50
-        && request.resource.data.keys()
-        	.hasOnly(['authorId','text','level','parentId','postId','numLikes','numReply','createdAt'])
-        && request.resource.data.numLikes == 0
-        && request.resource.data.numReply ==0
-        && request.resource.data.postId == postId
-        && request.resource.data.text.length < 500
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.parentId != null
-        && request.resource.data.level == 
-        get(/databases/$(database)/documents/posts/$(postId)/comments/$(request.resource.data.parent))
-        .data.level + 1
-        && request.resource.data.level < 4;
- */
-
-/**
- 
-
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read: if request.auth != null;
-    }
-    match /users/{userId}/{allPath=**}{
-    	allow create,delete : if false;
-      allow update : if userId == request.auth.uid 
-      		&& request.resource.data.numPosts == resource.data.numPosts
-          && (request.resource.data.keys().hasOnly(
-        ['name', 'username', 'numPosts','numLikes', 'avatar', 'about', 'authcomplete']));
-    }
-    match /posts/{postId}{
-    	allow create : if request.resource.data.authorId == request.auth.uid 
-      	&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.numPosts < 10
-        && (request.resource.data.keys().hasOnly(
-        ['createdAt', 'authorId','numLikes', 'numComments', 'desc','numMedia']))
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.numPosts == 0
-        && request.resource.data.numComments == 0
-        && request.resource.data.numMedia < 5
-        && request.resource.data.desc.length < 10;
-      allow delete : if resource.data.authorId == request.auth.uid;
-    }
-  	match /posts/{postId}/likedby/{userId}{
-    	allow create : if request.auth.uid == userId 
-      	// && get(/databases/$(database)/documents/posts/$(postId)).data.numLikes < 50
-        && request.resource.data.keys().hasOnly(['createdAt'])
-        && request.resource.data.createdAt is timestamp;
-      allow delete : if request.auth.uid == userId;
-    }
-    match /posts/{postId}/comments/{commentId}{
-    	allow create : if request.auth.uid == request.resource.data.authorId 
-      	&& get(/databases/$(database)/documents/posts/$(postId)).data.numComments < 50
-        && request.resource.data.keys()
-        	.hasOnly(['authorId','commentText','level','parentId','postId','numLikes','numReply','createdAt'])
-        && request.resource.data.numLikes == 0
-        && request.resource.data.numReply ==0
-        && request.resource.data.postId == postId
-        && request.resource.data.commentText.length < 500
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.parentId == null
-        && request.resource.data.level == 0;
-        
-      
-        
-      allow delete : if request.auth.uid == resource.authorId;
-      
-      match /commentslikedby/{likedbyUserId}{
-      	allow create : if request.auth.uid == likedbyUserId 
-          // && get(/databases/$(database)/documents/posts/$(postId)).data.numLikes < 50
-          && request.resource.data.keys().hasOnly(['createdAt'])
-          && request.resource.data.createdAt is timestamp;
-        allow delete : if request.auth.uid == likedbyUserId;
-      }
-      match /reply/{replyId}{
-      	allow create : 
-        	if get
-          (/databases/$(database)/documents/posts/$(postId)/comments/$(replyId)).data.authorId == 
-          request.auth.uid
-          && request.resource.data.keys().hasOnly(['exists'])
-          && request.resource.data.exists == true;
-        allow delete :
-        	if get
-          (/databases/$(database)/documents/posts/$(postId)/comments/$(replyId)).data.authorId == 
-          request.auth.uid
-          ||  !exists(/databases/$(database)/documents/posts/$(postId)/comments/$(replyId));
-      } 
-    }
-  }
-}
- */

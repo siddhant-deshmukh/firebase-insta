@@ -1,53 +1,75 @@
 import { collection, deleteDoc, doc, getDoc, query, setDoc, Timestamp } from 'firebase/firestore';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
+import { InfiniteData, useQueryClient } from 'react-query';
+import { QueryFilters } from 'react-query/types/core/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
 import { IPost } from '../../types'
 
-export const Post = ({ post } : {post: IPost}) => {
+export const Post = ({ post , pageNum ,index } : {post: IPost, pageNum:number, index :number}) => {
   const [currentIndex,setCurrentIndex] = useState<number>(0);
-  const [isLiked,setIsLiked] = useState<boolean>(false);
   const [comments,setComments] = useState([]);
   let [searchParams, setSearchParams] = useSearchParams();
   const { authState } = useContext(AppContext)
-  
-  const updateLikedState = useCallback(async ()=>{
-    const docRef = doc(collection(db,`posts/${post.postId}/likedby`),authState.user?.uid);
-    const docSnap = await getDoc(docRef)
-    console.log(`posts/${post.postId}/likedby`,authState.user?.uid,Date())
-    if(docSnap.exists()){
+  const queryClient = useQueryClient()
+
+  const changeCacheState = (newValue : boolean) => {
+    const oldPagesArray : InfiniteData<{
+        data: IPost[];
+        nextPage: number;
+        isLast: boolean;
+    }> | undefined = queryClient.getQueryData('postFeed')
+    // console.log(oldPagesArray?.pages[pageNum])
+
+    const newPages = oldPagesArray?.pages.map((page,index1:number)=>{
+        if(index1===pageNum){
+            const newData = page.data.map((post,index2)=>{
+                if(index2===index && post.numLikes){
+                    return {...post,hasLiked:newValue,numLikes:(newValue)?(post.numLikes+1):(post.numLikes-1)}
+                }
+                return {...post}
+            })
+            return {...page,data:newData}
+        }else{
+            return page
+        }        
+    }) ?? []
+    const newPagesArray = {...oldPagesArray,pages:newPages}
+    // console.log("old",oldPagesArray)
+    // console.log(newPagesArray)
+    queryClient.setQueryData('postFeed',newPagesArray)
+  }
+  const updateLikedState = async ()=>{
+    if(post.hasLiked){
         deleteDoc(doc(collection(db,`posts/${post.postId}/likedby`),authState.user?.uid))
             .then(()=>{
-                setIsLiked(false)
+                // post.hasLiked(false)
+                //queryClient.setQueryData('postFeed',false)
+                changeCacheState(false)
             }).catch((err)=>{
                 console.log("Some error occured",err)
             })
     }else{
         setDoc(doc(collection(db,`posts/${post.postId}/likedby`),authState.user?.uid),{
             createdAt : Timestamp.fromDate(new Date())
-        }).then((onFulfield)=>{
-            setIsLiked(true)
-        }).catch((err)=>{
-            console.log("Something goes wrong to change liked state",err)
-        })
+            }).then((onFulfield)=>{
+                // setIsLiked(true)
+                // queryClient.setQueryData(['postFeed',pageNum,index,'hasLiked'],true)
+                changeCacheState(true)
+            }).catch((err)=>{
+                console.log("Something goes wrong to change liked state",err)
+            })
     }
-  },[setIsLiked])
-  useEffect(()=>{
-    const docRef = doc(collection(db,`posts/${post.postId}/likedby`),authState.user?.uid);
-    getDoc(docRef).then((docSnap)=>{
-        if(docSnap.exists()){
-            setIsLiked(true)
-        }else{
-            setIsLiked(false)
-        }
-    }).catch(()=>{
-        console.log("Some error occured while fetching like state")
-    })
-  },[setIsLiked])
-
+  }
+  
+//   useEffect(()=>{
+//     const oldPagesArray = queryClient.getQueryData('postFeed')
+//     console.log("newPagesArray",newPagesArray)
+//     console.log("Data",pageNum,index,oldPagesArray?.pages[pageNum]?.data[index])
+//   },[])
   return (
-    <div className="bg-gray-100 p-4">
+    <div className="bg-gray-100 p-4" style={{minWidth:'500px'}}>
         <div className="bg-white border rounded-sm max-w-md">
             <div className="flex items-center px-4 py-3">
                 <Link 
@@ -64,38 +86,40 @@ export const Post = ({ post } : {post: IPost}) => {
                 </Link>
             </div>
 
-            <div className='relative w-full h-fit '>
-                <img  src={post.imgUrls[currentIndex]}/>
+            <div className='relative w-full flex items-center' style={{minHeight:'400px',maxHeight:'800px'}}>
+                <img className='w-fit h-fit mx-auto'  src={post.imgUrls[currentIndex]}/>
                 <button 
-                    className='absolute inset-y-1/2 h-fit left-0  px-2 w-fit rounded-full text-white bg-black opacity-40'
+                    className='absolute inset-y-1/2 h-fit left-0.5  px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event)=>{event.preventDefault(); setCurrentIndex((prev)=>prev-1)}}
-                    disabled={(currentIndex<1)?true:false}
+                    hidden={(currentIndex<1)?true:false}
                     >  
                     {'<'}
                 </button>
                 <button 
-                    className='absolute inset-y-1/2 h-fit right-0 px-2 w-fit rounded-full text-white bg-black opacity-40'
+                    className='absolute inset-y-1/2 h-fit right-0.5 px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event)=>{event.preventDefault(); setCurrentIndex((prev)=>prev+1)}}
-                    disabled={(currentIndex>post.imgUrls.length-2)?true:false}
+                    hidden={(currentIndex>post.imgUrls.length-2)?true:false}
                     >  
                     {'>'}
                 </button>
             </div>
 
-            <div className="flex items-center justify-between mx-4 mt-3 mb-2">
+            <div 
+                className="flex items-center justify-between mx-4 mt-3 mb-2"    
+                >
                 <div className="flex gap-4 items-center">
                     <button
                         className='w-fit h-fit'
                         onClick={(event)=>{event.preventDefault(); updateLikedState()}}
                         >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill={(isLiked)?"red":"none"} viewBox="0 0 24 24" strokeWidth={(isLiked)?0.5:1.5} stroke="currentColor" className="w-7 hover:fill-red-400 border-red-500 h-7">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill={(post.hasLiked)?"red":"none"} viewBox="0 0 24 24" strokeWidth={(post.hasLiked)?0.5:1.5} stroke="currentColor" className="w-7 hover:fill-red-400 border-red-500 h-7">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                         </svg>
 
                     </button>
                     <button
                         className='w-fit h-fit'
-                        onClick={(event)=>{event.preventDefault(); setSearchParams((prev)=>{return {...prev,postId:post.postId,showPostModal:'Yes'}})}}
+                        onClick={(event)=>{event.preventDefault(); setSearchParams((prev)=>{return {...prev,postId:post.postId,showPostModal:'Yes',index,pageNum}})}}
                         >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />

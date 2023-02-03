@@ -13,12 +13,10 @@ import UserPage from './routes/UserPage'
 import UploadFile from './components/modal/UploadFile'
 import LikedBy  from './components/modal/LikedBy'
 import PostDisplay from './components/modal/PostDisplay'
+import { ReactQueryDevtools } from 'react-query/devtools'
 
 function App() {
-  const [count, setCount] = useState(0)
   const {authState,authLoading} = useContext<IAuthContext>(AppContext)
-  const {modalOn, likedby,viewpost, postId} = useParams()
-  const location = useLocation();
   let [searchParams, setSearchParams] = useSearchParams();
   
   useEffect(()=>{
@@ -73,6 +71,7 @@ function App() {
             searchParams.get('showPostModal')  &&
             <PostDisplay />
           }
+          <ReactQueryDevtools initialIsOpen={false} />
         </div>
       )
     }else{

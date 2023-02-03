@@ -32,6 +32,7 @@ export interface IPost extends IPostStored{
     author : IUserSnippet,
     imgUrls : string[],
     postId : string,
+    hasLiked? : boolean,
 }
 export interface IPostSnippet extends IPostStored{
     imgUrls : string[],
