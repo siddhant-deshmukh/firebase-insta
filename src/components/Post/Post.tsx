@@ -5,40 +5,27 @@ import { QueryFilters } from 'react-query/types/core/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
-import { IPost } from '../../types'
+import { IPost, IUserSnippet } from '../../types'
+import UserSnippetCard from '../UserSnippetCard';
 
-export const Post = ({ post , pageNum ,index } : {post: IPost, pageNum:number, index :number}) => {
+export const Post = ({ post  } : {post: IPost}) => {
   const [currentIndex,setCurrentIndex] = useState<number>(0);
   const [comments,setComments] = useState([]);
   let [searchParams, setSearchParams] = useSearchParams();
   const { authState } = useContext(AppContext)
   const queryClient = useQueryClient()
-
+  const [author,setAuthor] = useState<IUserSnippet | null>(null)
+  const [imgLoaded,setImgLoaded] = useState<boolean>(false)
   const changeCacheState = (newValue : boolean) => {
-    const oldPagesArray : InfiniteData<{
-        data: IPost[];
-        nextPage: number;
-        isLast: boolean;
-    }> | undefined = queryClient.getQueryData('postFeed')
+    const oldPost : IPost | undefined = queryClient.getQueryData(['post',post.postId])
     // console.log(oldPagesArray?.pages[pageNum])
 
-    const newPages = oldPagesArray?.pages.map((page,index1:number)=>{
-        if(index1===pageNum){
-            const newData = page.data.map((post,index2)=>{
-                if(index2===index && post.numLikes){
-                    return {...post,hasLiked:newValue,numLikes:(newValue)?(post.numLikes+1):(post.numLikes-1)}
-                }
-                return {...post}
-            })
-            return {...page,data:newData}
-        }else{
-            return page
-        }        
-    }) ?? []
-    const newPagesArray = {...oldPagesArray,pages:newPages}
+    if(oldPost && oldPost.numLikes && oldPost.hasLiked){
+        const newPost = {...oldPost,hasLiked:newValue,numLikes:(newValue)?(oldPost.numLikes+1):(oldPost.numLikes-1)}
+        queryClient.setQueryData(['post',post.postId],newPost)
+    }
     // console.log("old",oldPagesArray)
     // console.log(newPagesArray)
-    queryClient.setQueryData('postFeed',newPagesArray)
   }
   const updateLikedState = async ()=>{
     if(post.hasLiked){
@@ -68,26 +55,23 @@ export const Post = ({ post , pageNum ,index } : {post: IPost, pageNum:number, i
 //     console.log("newPagesArray",newPagesArray)
 //     console.log("Data",pageNum,index,oldPagesArray?.pages[pageNum]?.data[index])
 //   },[])
+  useEffect(()=>{
+    const author_ : IUserSnippet | undefined = queryClient.getQueryData(['user','snippet',post.authorId])
+    if(author_) setAuthor(author_)
+  },[setAuthor])
   return (
     <div className="bg-gray-100 p-4" style={{minWidth:'500px'}}>
         <div className="bg-white border rounded-sm max-w-md">
-            <div className="flex items-center px-4 py-3">
-                <Link 
-                    className='group w-fit flex items-center'
-                    to={`/u/${post.authorId}`}
-                    >
-                    <img className="h-8 w-8 rounded-full"
-                        src={(!post.author.avatar || post.author.avatar==="")?"/abstract-user.svg":post.author.avatar}
-                        />
-                    <div className="ml-3 ">
-                        <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{post.author.name}</span>
-                        <span className="text-gray-600 text-xs block">{post.author.username}</span>
-                    </div>
-                </Link>
-            </div>
+            <UserSnippetCard author={author} uid={post.authorId}/>
 
             <div className='relative w-full flex items-center' style={{minHeight:'400px',maxHeight:'800px'}}>
-                <img className='w-fit h-fit mx-auto'  src={post.imgUrls[currentIndex]}/>
+                {
+                    !imgLoaded &&
+                    <div role="status" className="flex mx-auto items-center justify-center h-96 w-full max-w-sm bg-gray-300 rounded-lg animate-pulse dark:bg-gray-700">
+                        <svg className="w-full h-full mx-auto text-gray-200 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor" viewBox="0 0 384 512"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path></svg>
+                    </div>
+                }
+                <img className='w-fit h-fit mx-auto' onLoad={()=>{setImgLoaded(true)}} onLoadStart={()=>{setImgLoaded(false)}} src={post.imgUrls[currentIndex]}/>
                 <button 
                     className='absolute inset-y-1/2 h-fit left-0.5  px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event)=>{event.preventDefault(); setCurrentIndex((prev)=>prev-1)}}
@@ -119,7 +103,7 @@ export const Post = ({ post , pageNum ,index } : {post: IPost, pageNum:number, i
                     </button>
                     <button
                         className='w-fit h-fit'
-                        onClick={(event)=>{event.preventDefault(); setSearchParams((prev)=>{return {...prev,postId:post.postId,showPostModal:'Yes',index,pageNum}})}}
+                        onClick={(event)=>{event.preventDefault(); setSearchParams((prev)=>{return {...prev,postId:post.postId,showPostModal:'Yes'}})}}
                         >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />

@@ -1,26 +1,28 @@
-import { collection, getDoc, getDocs, limit, orderBy, query, doc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDoc, getDocs, limit, orderBy, query, doc, deleteDoc, setDoc, Timestamp, where } from 'firebase/firestore';
 import { getDownloadURL, ref } from 'firebase/storage';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { InfiniteData, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 import AppContext from '../../context/AppContext';
-import { db, storage } from '../../firebase';
-import { IComment, ICommentStored, IPost, IPostStored, IUserSnippet } from '../../types';
+import { auth, db, storage } from '../../firebase';
+import { IComment, ICommentStored, IPost, IPostStored, IUser, IUserSnippet, IUserStored } from '../../types';
+import UserSnippetCard from '../UserSnippetCard';
+import { CommentCard } from './CommentCard';
+import CommentsList from './CommentsList';
 
 export const PostDisplay = () => {
   let [searchParams, setSearchParams] = useSearchParams();
-  const [comments,setComments] = useState<IComment[]>([]);
+  const [ownComments,setOwnComments] = useState<IComment[]>([]);
   const [currentIndex,setCurrentIndex] = useState<number>(0);
   const [post,setPost] = useState<IPost | null>(null)
+  const [userData,setUserData] = useState<IUserStored | null>(null)
   const [isLiked,setIsLiked] = useState<boolean>(false);
   const { authState } = useContext(AppContext)
   const newCommentRef = useRef<HTMLInputElement | null>(null)
   const postId = searchParams.get('postId')
-  const pageNum = parseInt(searchParams.get('pageNum') || '-1')
-  const index = parseInt(searchParams.get('index') || '-1')
-
+  
   const queryClient = useQueryClient()
-
+  
   const closeModal = useCallback(()=>{
     setSearchParams((prev)=>{
         // let temp_ = prev;
@@ -39,14 +41,18 @@ export const PostDisplay = () => {
       text : newCommentRef.current.innerText.trim(),
       numLikes : 0,
       numReply : 0,
-      level : 1,
-      parentId : "yIr67nXwkBwzLTDvykPh",
+      level : 0,
+      parentId : null,
       createdAt : Timestamp.fromDate(new Date())
     } 
     console.log("New :",comment)
     setDoc(doc(collection(db,`posts/${post.postId}/comments`)),{
         ...comment,
     }).then((onFulfield)=>{
+        setOwnComments((prev)=>{
+          const comment_ : IComment = {...comment,user : authState.user as IUserSnippet,commentId:prev.length.toString()}
+          return [comment_,...prev]
+        })
         console.log("New comment !!!",onFulfield)
     }).catch((err)=>{
         console.log("Something goes wrong to change liked state",err)
@@ -54,7 +60,8 @@ export const PostDisplay = () => {
     
 
     if(newCommentRef.current) newCommentRef.current.innerText = "";
-  },[setComments,post,newCommentRef,authState])
+  },[setOwnComments,post,newCommentRef,authState])
+  
   const updateLikedState = useCallback(async ()=>{
     if(!post) return
     const docRef = doc(collection(db,`posts/${post.postId}/likedby`),authState.user?.uid);
@@ -77,64 +84,97 @@ export const PostDisplay = () => {
         })
     }
   },[setIsLiked,post])
-  const getComments = async ()=>{
-    const q = query(collection(db,`posts/${postId}/comments`),orderBy('createdAt'),limit(10));
-    const docsSnapShot = await getDocs(q);
-    
-    const promiseQ = docsSnapShot.docs.map(async (commentDoc)=>{
-      let user = (await getDoc(doc(db,`users/${commentDoc.data().authorId}`))).data() as IUserSnippet; 
 
-      //console.log("commentId",commentDoc.id,user)
-      return {commentId : commentDoc.id , ...commentDoc.data(),user} as IComment
-    })
-    const commets =  await Promise.all(promiseQ)
-    console.log("commets", commets  )
-    return commets
-  }
-  const getPost =  useCallback( async ()=>{
-    console.log("pageNum index",pageNum,index, typeof pageNum,(pageNum && index && pageNum > -1 && index > -1))
-    if( pageNum > -1 && index > -1){
-      console.log("what is the problem!")
-      const postFeed  : InfiniteData<{
-        data: IPost[];
-        nextPage: number;
-        isLast: boolean;
-      }> | undefined = queryClient.getQueryData('postFeed')
-      const post = postFeed?.pages[pageNum]?.data[index]
-      console.log("Check Post data", post)
-      if(post) return post
-    }
-
-    const postDocRef = doc(db,'posts',postId as string)
-    const postDocSnap = await getDoc(postDocRef)
-    if(postDocSnap.exists()){
-      const postDoc = postDocSnap.data() as IPostStored;
-      const author = (await getDoc(doc(db,`users/${postDoc.authorId}`))).data() as IUserSnippet; 
-
-      let urls : Promise<string>[] = []
-      for(let i=0;i<postDoc.numMedia;i++){
-        urls[i]= getDownloadURL(ref(storage,`posts/${postDoc.authorId}/${postId}/${i}`))
+  const getUserData = async ()=>{
+      const userCache : IUserStored | undefined = queryClient.getQueryData(['user','snippets',post?.authorId])
+      let relationWithUser : IUserStored['relationWithUser'] ;
+      if(authState.user?.uid === post?.authorId){ 
+        relationWithUser = 'self'
+      }else{
+        const doc_ = await getDoc(doc(db,`users/${authState.user?.uid}/following/${post?.authorId}`))
+        if(doc_.exists()) relationWithUser = 'following'
+        else relationWithUser = ''
       }
-      const imgUrls= await Promise.all(urls)
-      return {...postDoc,author,postId:postDocSnap.id,imgUrls} as IPost
-    }else{
-      return null
-    }
-  },[pageNum,index])
 
-  useEffect(()=>{
+      if(userCache){
+        userCache.relationWithUser = relationWithUser
+        return userCache
+      }
+
+      if(!post?.authorId) return null
+      const user : IUserStored | undefined = (await getDoc(doc(db,`users/${post?.authorId}`))).data() as IUserStored;
+      user.relationWithUser = relationWithUser
+
+      console.log("User of this page",user)
+      return user
+  }
+  const getOwnComments = async ()=>{
+      // console.warn("Here to get own comments")
+      const q = query(collection(db,`posts/${postId}/comments`),
+          where('authorId','==',authState.user?.uid),
+          where('level','==',0),
+          where('parentId','==',null),
+          // orderBy('authorId','asc'),
+          orderBy('createdAt','desc'),
+          orderBy('numLikes','desc'),
+          limit(10));
+      const docsSnapShot = await getDocs(q);
+      console.log("user own comments", docsSnapShot.docs)
+
+      let user = authState.user as IUserSnippet;  
+
+      const comments = docsSnapShot.docs.map((commentDoc)=>{
+          return {commentId : commentDoc.id , ...commentDoc.data(),user} as IComment
+      })
+      console.log("comments", comments  )
+      return comments
+  }
+  const getPost = async ()=>{
+      //to get cache data
+      const oldPost  : IPost | undefined = queryClient.getQueryData(['post',postId])
+      console.log("Check Post data", oldPost)
+      if(oldPost) return oldPost
+
+      // how to retrive data from server
+      /**
+      const postDocRef = doc(db,'posts',postId as string)
+      const postDocSnap = await getDoc(postDocRef)
+      if(postDocSnap.exists()){
+        const postDoc = postDocSnap.data() as IPostStored;
+        const author = (await getDoc(doc(db,`users/${postDoc.authorId}`))).data() as IUserSnippet; 
+
+        let urls : Promise<string>[] = []
+        for(let i=0;i<postDoc.numMedia;i++){
+          urls[i]= getDownloadURL(ref(storage,`posts/${postDoc.authorId}/${postId}/${i}`))
+        }
+        const imgUrls= await Promise.all(urls)
+        return {...postDoc,author,postId:postDocSnap.id,imgUrls} as IPost
+      }else{
+        return null
+      }
+       */
+  }
+
+  useEffect(()=>{  
     getPost().then((value)=>{
       if(value){
         setPost(value)
       }
     })
-    getComments().then((comments)=>{
-        setComments((prev)=>{
-        console.log("set comments", [...comments,...prev])
-        return [...comments,...prev];
-      })
+    getOwnComments().then((comments)=>{
+      if(comments){
+        setOwnComments(comments)
+      }
     })
-  },[setComments,setPost])
+  },[setPost,setOwnComments])
+  useEffect(()=>{
+    if(!post) return
+    getUserData().then((user)=>{
+      if(user){
+        setUserData(user)
+      }
+    })
+  },[post,setUserData])
 
   return (
     <div>
@@ -156,7 +196,7 @@ export const PostDisplay = () => {
           {
             post &&
             <div className='relative flex items-center w-fit h-full '
-            style={{minWidth:'400px',minHeight:'500px'}}>
+              style={{minWidth:'400px',minHeight:'500px'}}>
               <img  src={post?.imgUrls[currentIndex]} className="mx-auto "/>
               <button 
                 className='absolute inset-y-1/2 h-fit left-0  px-2 w-fit rounded-full text-white bg-black opacity-40'
@@ -178,27 +218,24 @@ export const PostDisplay = () => {
             post && 
             <div className='flex flex-col bg-white w-fit '
               style={{minWidth:'400px',minHeight:'500px'}}>
-              <div className="flex items-center w-full h-fit px-4 py-3">
-                  <div className='group w-fit flex items-center'>
-                      <img className="h-8 w-8 rounded-full"
-                          src={(!post.author.avatar || post.author.avatar==="")?"/abstract-user.svg":post.author.avatar}
-                          />
-                      <div className="ml-3 ">
-                          <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{post.author.name}</span>
-                          <span className="text-gray-600 text-xs block">{post.author.username}</span>
-                      </div>
-                  </div>
+              <UserSnippetCard author={userData} uid={post.authorId}/>
+
+              {/* list of comments */}
+              <div className='h-full w-full overflow-y-auto'>
+                <div>
+                  {
+                    ownComments && 
+                    ownComments.map((comment)=>{
+                      return (<div key={"ownComment_"+comment.commentId}>
+                        <CommentCard comment={comment}/>
+                      </div>)
+                    })
+                  }
+                </div>
+                <CommentsList postId={post.postId} endUserId={authState.user?.uid as string}/>
               </div>
-              <div className='h-full bg-slate-200 w-full'>
-                {
-                  comments && 
-                  comments.map((comment,index)=>{
-                    return(<div key={comment.commentId  || index}>
-                      <CommentCard comment={comment} />
-                    </div>)
-                  })
-                }
-              </div>
+
+              {/* Button list to perform operations such as likes, share, save */}
               <div className="flex items-center w-auto  h-fit justify-between mx-4 mt-3 mb-2">
                 <div className="flex gap-4 items-center">
                   <button
@@ -219,11 +256,13 @@ export const PostDisplay = () => {
                       </svg>
                   </button>
                   <svg fill="#262626" height="24" viewBox="0 0 48 48" width="24"><path d="M47.8 3.8c-.3-.5-.8-.8-1.3-.8h-45C.9 3.1.3 3.5.1 4S0 5.2.4 5.7l15.9 15.6 5.5 22.6c.1.6.6 1 1.2 1.1h.2c.5 0 1-.3 1.3-.7l23.2-39c.4-.4.4-1 .1-1.5zM5.2 6.1h35.5L18 18.7 5.2 6.1zm18.7 33.6l-4.4-18.4L42.4 8.6 23.9 39.7z"></path></svg>
-                  </div>
-                  <div className="flex">
-                      <svg fill="#262626" height="24" viewBox="0 0 48 48" width="24"><path d="M43.5 48c-.4 0-.8-.2-1.1-.4L24 29 5.6 47.6c-.4.4-1.1.6-1.6.3-.6-.2-1-.8-1-1.4v-45C3 .7 3.7 0 4.5 0h39c.8 0 1.5.7 1.5 1.5v45c0 .6-.4 1.2-.9 1.4-.2.1-.4.1-.6.1zM24 26c.8 0 1.6.3 2.2.9l15.8 16V3H6v39.9l15.8-16c.6-.6 1.4-.9 2.2-.9z"></path></svg>
-                  </div>
+                </div>
+                <div className="flex">
+                    <svg fill="#262626" height="24" viewBox="0 0 48 48" width="24"><path d="M43.5 48c-.4 0-.8-.2-1.1-.4L24 29 5.6 47.6c-.4.4-1.1.6-1.6.3-.6-.2-1-.8-1-1.4v-45C3 .7 3.7 0 4.5 0h39c.8 0 1.5.7 1.5 1.5v45c0 .6-.4 1.2-.9 1.4-.2.1-.4.1-.6.1zM24 26c.8 0 1.6.3 2.2.9l15.8 16V3H6v39.9l15.8-16c.6-.6 1.4-.9 2.2-.9z"></path></svg>
+                </div>
               </div>
+              
+              {/* To show no. of like  */}
               <div className='w-auto h-fit'>
                 <button
                       className="font-semibold w-fit h-fit px-2 hover:underline text-left text-sm mx-4"
@@ -231,6 +270,8 @@ export const PostDisplay = () => {
                     {(post?.numLikes)?post?.numLikes:"0"} likes
                 </button>
               </div>
+
+              {/* To make new comment */}
               <div className='flex relative w-auto pl-3 items-center'>
                 <div ref={newCommentRef}  contentEditable={true}
                   className='w-full pl-10 p-1 h-fit max-h-20 overflow-y-auto focus:outline-1 outline-gray-300'  
@@ -258,51 +299,5 @@ export const PostDisplay = () => {
   )
 }
 
-export const CommentCard = ({comment}:{comment:IComment}) => {
-  const [shouldTruncate,setTruncate] = useState<boolean>(true) 
-  if(comment && comment.user){
-    return (
-      <div className='w-auto h-fit p-1 pl-3 flex'>
-        <div className='w-fit h-full'>
-          <img className="h-6 w-6 rounded-full"
-              src={(!comment.user.avatar || comment.user.avatar==="")?"/abstract-user.svg":comment.user.avatar}
-              />
-        </div>
-        <div className='w-auto h-full px-2'>
-          <div className='w-auto h-auto'>
-            <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{comment.user.name}</span>
-          </div>
-          <div className=' px-1'>
-            { shouldTruncate &&
-              <span className='w-auto text-xs h-fit'>
-                {comment.text.slice(0,50)}
-                {
-                  comment.text.length > 50 &&
-                  <button className='text-blue-200 font-semibold'
-                  onClick={(event)=>{event.preventDefault(); setTruncate(false)}}>...more</button>
-                }
-              </span>
-            }
-            {
-              !shouldTruncate && 
-              <span className='w-auto text-xs h-fit'>
-                {comment.text}
-                <button className='text-blue-200 font-semibold'
-                  onClick={(event)=>{event.preventDefault(); setTruncate(true)}}>...less</button>
-              </span>
-            }
-          </div>
-        </div>
-        {/* <div className='w-fit h-auto'>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-          </svg>
-        </div> */}
-      </div>
-    )
-  }else{
-    return (<div></div>)
-  }
-}
 
 export default PostDisplay;

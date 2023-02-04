@@ -2,7 +2,7 @@
 import * as functions from "firebase-functions";
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
-import {FieldValue} from "firebase-admin/firestore";
+import {FieldValue, Timestamp} from "firebase-admin/firestore";
 admin.initializeApp();
 
 exports.afterAuthUser = functions
@@ -38,6 +38,8 @@ exports.afterAuthUser = functions
         // following: [],
         // followers: [],
         authComplete: false,
+        numFollowing: 0,
+        numFollowers: 0,
       };
 
       const collectionRef = admin.firestore().doc(`users/${user.uid}`)
@@ -56,7 +58,17 @@ exports.followingAccountTrigger = functions
       const documentRef = admin.firestore()
           .doc(`users/${followingToId}/followers/${userId}`)
           .create({exists: true});
-      return documentRef;
+      const documentRef2 = admin.firestore()
+          .doc(`users/${userId}`)
+          .update({
+            "numFollowing": FieldValue.increment(1),
+          });
+      const documentRef3 = admin.firestore()
+          .doc(`users/${followingToId}`)
+          .update({
+            "numFollowers": FieldValue.increment(1),
+          });
+      return Promise.all([documentRef, documentRef2, documentRef3]);
     });
 exports.unFollowingAccountTrigger = functions
     .region("asia-south1")
@@ -70,7 +82,17 @@ exports.unFollowingAccountTrigger = functions
       const documentRef = admin.firestore()
           .doc(`users/${followingToId}/followers/${userId}`)
           .delete();
-      return documentRef;
+      const documentRef2 = admin.firestore()
+          .doc(`users/${userId}`)
+          .update({
+            "numFollowing": FieldValue.increment(-1),
+          });
+      const documentRef3 = admin.firestore()
+          .doc(`users/${followingToId}`)
+          .update({
+            "numFollowers": FieldValue.increment(-1),
+          });
+      return Promise.all([documentRef, documentRef2, documentRef3]);
     });
 exports.newPostCreatedTrigger = functions
     .region("asia-south1")
@@ -84,7 +106,7 @@ exports.newPostCreatedTrigger = functions
       console.log(postId, authorId);
       const documentRef = admin.firestore()
           .doc(`users/${authorId}/posts/${postId}`)
-          .create({exists: true});
+          .create({exists: true, createdAt: Timestamp.fromDate(new Date)});
       const documentRef2 = admin.firestore()
           .doc(`users/${authorId}`)
           .update({

@@ -1,3 +1,4 @@
+import { useQueryClient } from 'react-query'
 import { collection, doc, DocumentData, endAt, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, startAfter } from 'firebase/firestore'
 import { getDownloadURL, ref } from 'firebase/storage'
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
@@ -16,43 +17,34 @@ const Home = () => {
   const postPerPage = 3
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
+  const queryClient = useQueryClient()
 
-  const getPostDetails = async (postData : IPostStored,postId:string) => {
+  const getPostIdandCacheDetails = async (postData : IPostStored,postId:string) => {
       let updatedDoc : IPost = {...postData,imgUrls:["#"],author:{name:'',avatar:'',about:'',username:''},postId}
       let urls : Promise<string>[] = []
       for(let i=0;i<postData.numMedia;i++){
         urls[i]= getDownloadURL(ref(storage,`posts/${postData.authorId}/${postId}/${i}`))
       }
       updatedDoc.imgUrls= await Promise.all(urls)
-      updatedDoc.author = (await getDoc(doc(db,`users/${postData.authorId}`))).data() as IUserSnippet;
+      if(!queryClient.getQueryData(['user','snippet',postData.authorId])){
+        let authorDetails = (await getDoc(doc(db,`users/${postData.authorId}`))).data() as IUserSnippet;
+        queryClient.setQueryData(['user','snippet',postData.authorId],authorDetails)
+      }
       updatedDoc.hasLiked = (await getDoc(doc(collection(db,`posts/${postId}/likedby`),authState.user?.uid))).exists();
 
       //console.log("Updated doc!",updatedDoc)
-      return updatedDoc
+      queryClient.setQueryData(['post',postId],updatedDoc)
+      return postId
   }
-  const getPosts = async () => {
-    const newPostsQuery = query(collection(db,'posts'),orderBy("createdAt", "desc"), limit(10));
-    const documentSnapshots = await getDocs(newPostsQuery)
 
-    const promises = documentSnapshots.docs.map( async (doc) => {
-      //console.log(doc.id, " => ", doc.data());
-      let docData = {...doc.data()} as IPostStored;
-      return getPostDetails(docData,doc.id)
-    });
-    return Promise.all(promises)
+  const getPostFromCache =  (postId:string) => {
+    const post : IPost | undefined = queryClient.getQueryData(['post',postId])
+    if(post){
+      return post 
+    }else{
+      return 
+    }
   }
-  
-  // const refreshPosts = useCallback(async() => {
-    
-  //   getPosts().then(( results  )=>{
-  //     console.log("Promise results",results)
-  //     setPostFeed((prev)=>{
-  //       results.concat(prev)
-  //       console.log(results)
-  //       return results;
-  //     })
-  //   })
-  // },[setPostFeed]) 
 
   const fetchPosts = async ({pageParam = 1}) => {
     
@@ -61,9 +53,13 @@ const Home = () => {
     if(!firstPostDoc.current) firstPostDoc.current = postFeedSnapshots_.docs[0]
     lastPostDoc.current = postFeedSnapshots_.docs[postFeedSnapshots_.docs.length-1]
     const promises = postFeedSnapshots_.docs.map(async (doc)=>{
+      
+      const checkPostInCache = queryClient.getQueriesData(['post',doc.id])
+      console.log(checkPostInCache,'post',doc.id)
+
       let docData = {...doc.data()} as IPostStored;
       //console.log(doc.id,doc.data())
-      return getPostDetails(docData,doc.id)
+      return getPostIdandCacheDetails(docData,doc.id)
     })
     const data = await Promise.all(promises)
     
@@ -129,10 +125,13 @@ const Home = () => {
           <div className='py-10'>
             {
               postFeed && postFeed.pages.map((page,pageNum)=>{
-                return page.data.map((post,index)=>{
-                  return <div key={post.postId}>
-                    <Post post={post} pageNum={pageNum} index={index} />
+                return page.data.map((postId,index)=>{
+                  let post = getPostFromCache(postId)
+                  if(post){
+                    return <div key={postId}>
+                    <Post post={post} />
                     </div>
+                  }
                 })
               })
             }

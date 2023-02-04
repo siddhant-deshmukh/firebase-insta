@@ -8,6 +8,7 @@ export interface IUserStored  extends IUserSnippet{
     numPosts : number,
     numStories : number,
     authComplete : boolean,
+    relationWithUser? : 'self'|'following'|''
 }
 export interface IUser extends IUserStored{
     email : string,
