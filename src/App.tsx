@@ -3,7 +3,7 @@ import { Route, Routes, useLocation, useParams, useSearchParams } from 'react-ro
 import ConfirmEmail from './components/AuthRelated/ConfirmEmail'
 import { ForgetPassword } from './components/AuthRelated/ForgetPassword'
 import Login from './components/AuthRelated/Login'
-import NavBar from './components/NavBar'
+import NavBar from './components/SideNavBar'
 import SignUp from './components/AuthRelated/SignUp'
 import AppContext, { IAuthContext } from './context/AppContext'
 import Authenticate from './routes/Authenticate'
@@ -14,11 +14,12 @@ import UploadFile from './components/modal/UploadFile'
 import LikedBy  from './components/modal/LikedBy'
 import PostDisplay from './components/modal/PostDisplay'
 import { ReactQueryDevtools } from 'react-query/devtools'
+import UpdateProfile from './components/Settings/UpdateProfile'
 
 function App() {
   const {authState,authLoading} = useContext<IAuthContext>(AppContext)
   let [searchParams, setSearchParams] = useSearchParams();
-  
+  const location = useLocation()
   useEffect(()=>{
     searchParams.forEach((value,key,parent)=>{
       console.log(value,key,parent)
@@ -26,6 +27,13 @@ function App() {
     console.log(searchParams.get('modalOn'));
     console.log(searchParams.has('likedby'))
   },[searchParams])
+  useEffect(()=>{
+    if(location.pathname==='/' || location.pathname==='/home' || authState.authenticated==='No'){
+      document.title = 'Instagram'
+    }else{
+      document.title = authState.user?.name || 'Instagram'
+    }
+  },[location,authState])
   // remove the partial if want only email verified alloed and add following condition
   /**
    else if(authState.authenticated === 'Partial'){
@@ -50,11 +58,12 @@ function App() {
             <NavBar />
           </aside>
           
-          <div className={`w-auto mx-auto`}>
+          <div className={`w-auto mx-auto`} style={{maxWidth:'500px'}}>
             <Routes>
               <Route index element={<Home/>}/> 
               <Route path="/p/:postId" element={<Post/>}/> 
               <Route path="/u/:userId" element={<UserPage/>}/> 
+              <Route path="/update-profile" element={<UpdateProfile />}/>
               <Route path="*" element={<Home/>}/> 
             </Routes>
           </div>

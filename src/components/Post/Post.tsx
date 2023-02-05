@@ -60,18 +60,18 @@ export const Post = ({ post  } : {post: IPost}) => {
     if(author_) setAuthor(author_)
   },[setAuthor])
   return (
-    <div className="bg-gray-100 p-4" style={{minWidth:'500px'}}>
-        <div className="bg-white border rounded-sm max-w-md">
+    <div className="bg-gray-100 p-4 w-auto" >
+        <div className="bg-white max-h-full border rounded-sm">
             <UserSnippetCard author={author} uid={post.authorId}/>
 
-            <div className='relative w-full flex items-center' style={{minHeight:'400px',maxHeight:'800px'}}>
+            <div className='relative w-full overflow-y-hidden h-full flex items-center' style={{minHeight:'300px',maxHeight:'600px'}}>
                 {
                     !imgLoaded &&
                     <div role="status" className="flex mx-auto items-center justify-center h-96 w-full max-w-sm bg-gray-300 rounded-lg animate-pulse dark:bg-gray-700">
                         <svg className="w-full h-full mx-auto text-gray-200 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor" viewBox="0 0 384 512"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path></svg>
                     </div>
                 }
-                <img className='w-fit h-fit mx-auto' onLoad={()=>{setImgLoaded(true)}} onLoadStart={()=>{setImgLoaded(false)}} src={post.imgUrls[currentIndex]}/>
+                <img className='max-h-full max-w-full  mx-auto' onLoad={()=>{setImgLoaded(true)}} onLoadStart={()=>{setImgLoaded(false)}} src={post.imgUrls[currentIndex]}/>
                 <button 
                     className='absolute inset-y-1/2 h-fit left-0.5  px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event)=>{event.preventDefault(); setCurrentIndex((prev)=>prev-1)}}
@@ -89,7 +89,7 @@ export const Post = ({ post  } : {post: IPost}) => {
             </div>
 
             <div 
-                className="flex items-center justify-between mx-4 mt-3 mb-2"    
+                className="flex items-center hit justify-between mx-4 mt-3 mb-2"    
                 >
                 <div className="flex gap-4 items-center">
                     <button
