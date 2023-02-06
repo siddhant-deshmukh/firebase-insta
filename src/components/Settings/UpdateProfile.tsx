@@ -1,16 +1,19 @@
 import React, { useContext, useState } from 'react'
 import AppContext from '../../context/AppContext'
-import { IUser } from '../../types'
+import { IUser, IUserOwn } from '../../types'
 import imageCompression from 'browser-image-compression'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../../firebase'
+import { db, storage } from '../../firebase'
+import { ref, uploadBytes } from 'firebase/storage'
 
 const UpdateProfile = () => {
 
   const { authState } = useContext(AppContext)
-  const [uploadFormData,setUploadFormData] = useState<IUser>({...authState.user} as IUser )
-  const [avatar,setAvatar] = useState<string>()
+  const [uploadFormData,setUploadFormData] = useState<IUserOwn>({...authState.user} as IUserOwn )
+  const [avatar,setAvatar] = useState<string | undefined>(authState.user?.avatarUrl )
   const [toggleChangeAvatarModal,setChangeAvatarModal] = useState<boolean>(false)
+  const [avatarFile,setAvatarFile] = useState<File | null>(null)
+
   const handleOnChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     setUploadFormData((prev)=>{
         return {
@@ -23,48 +26,31 @@ const UpdateProfile = () => {
     if(!event.target.files || event.target.files.length === 0) return;
     const file = event.target.files[0]
     const fileCompressionOptions = {
-        maxSizeMB : 0.6
+        maxSizeMB : 0.8
     }
     console.log("initial file",file)
     imageCompression(file,fileCompressionOptions).then((cFile)=>{
-        console.log("COmpressed",cFile)
-        let reader = new FileReader()
-        reader.onload = function () {
-            if(!reader.result) return
-            let base64String = reader.result as string
-                // .replace("data:", "")
-                // .replace(/^.+,/, "");
-     
-            //console.log("Base64 :", reader.result);
-            //const byteSize = str => new Blob([str]).size;
-            console.log("Base 64 length",base64String.length)
-            //const url = URL.createObjectURL(`data:image/jpg;base64,${reader.result}`)
-            setAvatar(base64String)
-        }
-        reader.readAsDataURL(cFile);
-        setChangeAvatarModal(true)
+        setAvatarFile(cFile)
+        setAvatar(URL.createObjectURL(cFile))
     })
   }
-  const handleUploadAvatar = (avatar:string) => {
-    const userRef = doc(db,'users',authState.user?.uid as string)
-    console.log(avatar.length , authState.user?.uid)
-    updateDoc(userRef,{
-        avatar 
-    }).then(()=>{
-        console.log("avatar updated!")
-        setChangeAvatarModal(false);
+  const handleUploadAvatar = (avatarFile: File | null) => {
+    if(!avatarFile) return;
+    let currRef = ref(storage,`users/${authState.user?.uid}/avatar`);
+    uploadBytes(currRef,avatarFile).then((snapshot)=>{
+        console.log("Uploaded file ", `users/${authState.user?.uid}/avatar`,snapshot)
     }).catch((err)=>{
-        console.log(err)
-    })
+        console.log("Error to upload",`users/${authState.user?.uid}/avatar`,err)
+    });
   }
   return (
     <div className='mt-24 relative border border-gray-400 p-6 w-full' style={{maxWidth:'800px'}}>
         <form className='w-full h-fit flex flex-col space-y-4'>
             <div className='w-full flex py-5 h-fit space-x-8 justify-between items-center '>
                 <div className='text-right w-3/12 font-semibold text-sm flex place-content-end'>
-                    <img src={authState.user?.avatar || avatar || '/abstract-user.svg'} className="rounded-full w-12"/>
+                    <img src={ avatar || '/abstract-user.svg'} className="rounded-full w-12"/>
                 </div>
-                <div className='w-9/12' htmlFor='change-user-profile'>
+                <div className='w-9/12'>
                     {/* <label htmlFor="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Small input</label> */}
                     <div className='font-normal text-lg'>{authState.user?.username}</div>
                     <button 
@@ -130,7 +116,7 @@ const UpdateProfile = () => {
                             onClick={(event)=>{event.preventDefault(); setChangeAvatarModal(false)}}>X</button>
                     </div>
                     <div className='h-fit p-5'> 
-                        <img src={authState.user?.avatar || avatar || '/abstract-user.svg'} className='object-fill mx-auto w-32 h-32 rounded-full'/>
+                        <img src={ avatar || '/abstract-user.svg'} className='object-fill mx-auto w-32 h-32 rounded-full'/>
                         <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white" htmlFor="file_input">Upload file</label>
                         <input 
                             className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" aria-describedby="file_input_help" 
@@ -144,7 +130,7 @@ const UpdateProfile = () => {
                                 > Cancel</button>
                             <button 
                                 className='w-fit p-2 text-white bg-blue-600 hover:bg-blue-400 ml-3 rounded-xl'
-                                onClick={(event)=>{event.preventDefault(); handleUploadAvatar(avatar as string); }}
+                                onClick={(event)=>{event.preventDefault(); handleUploadAvatar(avatarFile); }}
                                 > Upload</button>
                         </div>
                     </div>

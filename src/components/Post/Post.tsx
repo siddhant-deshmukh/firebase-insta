@@ -62,7 +62,7 @@ export const Post = ({ post  } : {post: IPost}) => {
   return (
     <div className="bg-gray-100 p-4 w-auto" >
         <div className="bg-white max-h-full border rounded-sm">
-            <UserSnippetCard author={author} uid={post.authorId}/>
+            <UserSnippetCard author={post.author} />
 
             <div className='relative w-full overflow-y-hidden h-full flex items-center' style={{minHeight:'300px',maxHeight:'600px'}}>
                 {

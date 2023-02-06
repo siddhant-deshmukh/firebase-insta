@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IUserSnippet } from '../types'
 
-const UserSnippetCard = ({ author,uid } : {author : IUserSnippet | null,uid:string}) => {
+const UserSnippetCard = ({ author } : {author : IUserSnippet | null | undefined}) => {
   const [showPopover,setShowPopover] = useState<boolean>(false)
 
   if(author){
@@ -10,12 +10,12 @@ const UserSnippetCard = ({ author,uid } : {author : IUserSnippet | null,uid:stri
       <div className="flex w-full relative items-center px-4 py-3">
         <Link 
           className='group w-fit flex  items-center'
-          to={`/u/${uid}`}
+          to={`/u/${author.uid}`}
           onMouseEnter={()=>{setShowPopover(true)}}
           onMouseLeave={()=>{setShowPopover(false)}}
           >
           <img className="h-8 w-8 rounded-full"
-              src={(!author.avatar || author.avatar==="")?"/abstract-user.svg":author.avatar}
+              src={(!author.avatarUrl || author.avatarUrl==="")?"/abstract-user.svg":author.avatarUrl}
               />
           <div className="ml-3 ">
               <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{author.name}</span>
@@ -30,7 +30,7 @@ const UserSnippetCard = ({ author,uid } : {author : IUserSnippet | null,uid:stri
             <div className='flex    h-fit'>
               <div className='p-3 w-fit items-center'>
                 <img className="h-16 w-16  rounded-full "
-                    src={(!author.avatar || author.avatar==="")?"/abstract-user.svg":author.avatar}
+                    src={(!author.avatarUrl || author.avatarUrl==="")?"/abstract-user.svg":author.avatarUrl}
                     />
               </div>
               <div className=" w-52 py-4">

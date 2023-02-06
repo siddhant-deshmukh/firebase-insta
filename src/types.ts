@@ -1,21 +1,25 @@
-export interface IUserSnippet {
+export interface IUserStored {
     name : string,
-    avatar : string,
     about : string,
     username :string,
-}
-export interface IUserStored  extends IUserSnippet{
-    numPosts : number,
-    numStories : number,
+    numPosts? : number,
+    numFollowers? : number,
+    numFollowing? : number,
     authComplete : boolean,
+    avatar: string | number,
     relationWithUser? : 'self'|'following'|''
 }
-export interface IUser extends IUserStored{
+export interface IUserSnippet extends IUserStored{
+    avatarUrl? : string ,
+    uid : string,
+}
+
+export interface IUser extends IUserSnippet{
+    
+}
+export interface IUserOwn extends IUserSnippet{
     email : string,
     emailVerified : boolean,
-    uid : string,
-    no_followers? : number,
-    no_following? : number,
 }
 export interface IPostContent{
     type: 'Image' | 'Video' | 'Gif',

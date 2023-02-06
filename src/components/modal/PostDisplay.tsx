@@ -1,9 +1,8 @@
 import { collection, getDoc, getDocs, limit, orderBy, query, doc, deleteDoc, setDoc, Timestamp, where } from 'firebase/firestore';
-import { getDownloadURL, ref } from 'firebase/storage';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { InfiniteData, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
-import AppContext from '../../context/AppContext';
+import AppContext, { getUserData } from '../../context/AppContext';
 import { auth, db, storage } from '../../firebase';
 import { IComment, ICommentStored, IPost, IPostStored, IUser, IUserSnippet, IUserStored } from '../../types';
 import UserSnippetCard from '../UserSnippetCard';
@@ -15,7 +14,7 @@ export const PostDisplay = () => {
   const [ownComments,setOwnComments] = useState<IComment[]>([]);
   const [currentIndex,setCurrentIndex] = useState<number>(0);
   const [post,setPost] = useState<IPost | null>(null)
-  const [userData,setUserData] = useState<IUserStored | null>(null)
+  const [userData,setUserData] = useState<IUserSnippet | null>(null)
   const [isLiked,setIsLiked] = useState<boolean>(false);
   const { authState } = useContext(AppContext)
   const newCommentRef = useRef<HTMLInputElement | null>(null)
@@ -85,29 +84,6 @@ export const PostDisplay = () => {
     }
   },[setIsLiked,post])
 
-  const getUserData = async ()=>{
-      const userCache : IUserStored | undefined = queryClient.getQueryData(['user','snippets',post?.authorId])
-      let relationWithUser : IUserStored['relationWithUser'] ;
-      if(authState.user?.uid === post?.authorId){ 
-        relationWithUser = 'self'
-      }else{
-        const doc_ = await getDoc(doc(db,`users/${authState.user?.uid}/following/${post?.authorId}`))
-        if(doc_.exists()) relationWithUser = 'following'
-        else relationWithUser = ''
-      }
-
-      if(userCache){
-        userCache.relationWithUser = relationWithUser
-        return userCache
-      }
-
-      if(!post?.authorId) return null
-      const user : IUserStored | undefined = (await getDoc(doc(db,`users/${post?.authorId}`))).data() as IUserStored;
-      user.relationWithUser = relationWithUser
-
-      console.log("User of this page",user)
-      return user
-  }
   const getOwnComments = async ()=>{
       // console.warn("Here to get own comments")
       const q = query(collection(db,`posts/${postId}/comments`),
@@ -169,7 +145,7 @@ export const PostDisplay = () => {
   },[setPost,setOwnComments])
   useEffect(()=>{
     if(!post) return
-    getUserData().then((user)=>{
+    getUserData(post.authorId,queryClient,authState.user?.uid).then((user)=>{
       if(user){
         setUserData(user)
       }
@@ -218,7 +194,7 @@ export const PostDisplay = () => {
             post && 
             <div className='flex flex-col bg-white w-fit '
               style={{minWidth:'400px',minHeight:'500px'}}>
-              <UserSnippetCard author={userData} uid={post.authorId}/>
+              <UserSnippetCard author={userData} />
 
               {/* list of comments */}
               <div className='h-full w-full overflow-y-auto'>

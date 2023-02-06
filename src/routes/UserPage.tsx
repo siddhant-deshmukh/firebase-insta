@@ -3,14 +3,14 @@ import { getDownloadURL, ref } from 'firebase/storage';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from 'react-query';
 import { Link, useParams } from 'react-router-dom'
-import AppContext from '../context/AppContext';
+import AppContext, { getUserData } from '../context/AppContext';
 import { db, storage } from '../firebase';
 import { IPost, IPostSnippet, IPostStored, IUserSnippet, IUserStored } from '../types';
 
 const UserPage = () => {
   
   const { userId } = useParams();
-  const [userInfo,setUserInfo] = useState<IUserStored | null>(null);
+  const [userInfo,setUserInfo] = useState<IUserSnippet | null>(null);
   // const [relation,setRelation] = useState<'self' | 'follows' | 'desntFoloow' | null>(null)
   const queryClient = useQueryClient()
   const {authState} = useContext(AppContext)
@@ -53,29 +53,7 @@ const UserPage = () => {
       }
   },[userInfo,setUserInfo])
 
-  const getUserData = async ()=>{
-      const userCache : IUserStored | undefined = queryClient.getQueryData(['user','snippets',userId])
-      let relationWithUser : IUserStored['relationWithUser'] ;
-      if(authState.user?.uid === userId){ 
-        relationWithUser = 'self'
-      }else{
-        const doc_ = await getDoc(doc(db,`users/${authState.user?.uid}/following/${userId}`))
-        if(doc_.exists()) relationWithUser = 'following'
-        else relationWithUser = ''
-      }
 
-      if(userCache){
-        userCache.relationWithUser = relationWithUser
-        return userCache
-      }
-
-      if(!userId) return null
-      const user : IUserStored | undefined = (await getDoc(doc(db,`users/${userId}`))).data() as IUserStored;
-      user.relationWithUser = relationWithUser
-
-      console.log("User of this page",user)
-      return user
-  }
   // const getPostDetails = async (postData : IPostStored,postId:string) => {
   //   let updatedDoc : IPostSnippet = {...postData,imgUrls:["#"],postId}
   //   let urls : Promise<string>[] = []
@@ -135,8 +113,8 @@ const UserPage = () => {
         return postId
       }else{
         const postData  = (await getDoc(doc(collection(db,`posts`),postId))).data() as IPostStored ;
-
-        let updatedDoc : IPost = {...postData,imgUrls:["#"],author:{name:'',avatar:'',about:'',username:''},postId}
+        //@ts-ignore
+        let updatedDoc : IPost = {...postData,imgUrls:["#"],author:{name:'',avatarUrl:'',about:'',username:''},postId}
         let urls : Promise<string>[] = []
         for(let i=0;i<postData.numMedia;i++){
           urls[i]= getDownloadURL(ref(storage,`posts/${postData.authorId}/${postId}/${i}`))
@@ -203,12 +181,13 @@ const UserPage = () => {
   },[loader,isFetching,fetchNextPage,hasNextPage,isLoading])
 
   useEffect(()=>{
-
-    getUserData().then((userData)=>{
-      if(userData){
-        setUserInfo(userData)
-      }
-    })
+    if(userId){
+      getUserData(userId,queryClient,authState.user?.uid).then((userData)=>{
+        if(userData){
+          setUserInfo(userData)
+        }
+      })
+    }
     const observer = new IntersectionObserver(observerCallback,{
       root:null,
       rootMargin:'0px',
@@ -227,7 +206,7 @@ const UserPage = () => {
       <div className='w-full mx-auto h-full place-content-center' style={{width:'700px'}}>
         <div className='flex max-w-full bg-blue-100 ' >
           <img className="h-28 w-28 rounded-full"
-            src={(!userInfo.avatar || userInfo.avatar==="")?"/abstract-user.svg":userInfo.avatar}
+            src={(!userInfo.avatarUrl || userInfo.avatarUrl==="")?"/abstract-user.svg":userInfo.avatarUrl}
             />
           <div className='w-full pl-5 '>
             <div className='flex items-center justify-between'>
@@ -262,7 +241,7 @@ const UserPage = () => {
             </div>
             <div className='flex justify-between w-full'>
               <div className='font-bold text-md w-full text-center'>{userInfo.numPosts} Posts</div>  
-              <div className='font-bold text-md w-full text-center'>{userInfo.numStories} Stories</div> 
+              <div className='font-bold text-md w-full text-center'>{userInfo.numFollowers} Followers</div> 
             </div>
           </div>
         </div>

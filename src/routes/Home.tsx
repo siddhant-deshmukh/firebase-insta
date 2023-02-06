@@ -1,14 +1,39 @@
-import { useQueryClient } from 'react-query'
+import { QueryClient, useQueryClient } from 'react-query'
 import { collection, doc, DocumentData, endAt, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, startAfter } from 'firebase/firestore'
 import { getDownloadURL, ref } from 'firebase/storage'
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useInfiniteQuery } from 'react-query'
 import { Post } from '../components/Post/Post'
-import AppContext from '../context/AppContext'
+import AppContext, { getAvatarUrl, getUserData } from '../context/AppContext'
 import { db, storage } from '../firebase'
-import { IPost, IPostStored, IUser, IUserSnippet } from '../types'
+import { IPost, IPostStored, IUser, IUserSnippet, IUserStored } from '../types'
 
+export async function getPostsIdAndCacheDetails(postData : IPostStored,postId:string,queryClient : QueryClient,ownUid:string | undefined) {
+
+  const checkPost = queryClient.getQueryData(['post',postId]) as IPost | undefined
+  if(checkPost) return postId
+  
+  let urls : Promise<string>[] = []
+  for(let i=0;i<postData.numMedia;i++){
+    urls[i]= getDownloadURL(ref(storage,`posts/${postData.authorId}/${postId}/${i}`))
+  }
+  let imgUrlsPromise =  Promise.all(urls)
+  let authorPromise  =  getUserData(postData.authorId,queryClient,ownUid)
+  let checkLikedPromise =  getDoc(doc(collection(db,`posts/${postId}/likedby`),ownUid))
+
+  const [imgUrls,author,checkLiked] = await Promise.all([imgUrlsPromise,authorPromise,checkLikedPromise])
+  const finalDoc : IPost = {
+    ...postData,
+    imgUrls,
+    author,
+    hasLiked: checkLiked.exists(),
+    postId
+  }
+  console.log("Updated doc!",finalDoc)
+  queryClient.setQueryData(['post',postId],finalDoc)
+  return postId
+}
 
 const Home = () => {
 
@@ -18,24 +43,6 @@ const Home = () => {
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const queryClient = useQueryClient()
-
-  const getPostIdandCacheDetails = async (postData : IPostStored,postId:string) => {
-      let updatedDoc : IPost = {...postData,imgUrls:["#"],author:{name:'',avatar:'',about:'',username:''},postId}
-      let urls : Promise<string>[] = []
-      for(let i=0;i<postData.numMedia;i++){
-        urls[i]= getDownloadURL(ref(storage,`posts/${postData.authorId}/${postId}/${i}`))
-      }
-      updatedDoc.imgUrls= await Promise.all(urls)
-      if(!queryClient.getQueryData(['user','snippet',postData.authorId])){
-        let authorDetails = (await getDoc(doc(db,`users/${postData.authorId}`))).data() as IUserSnippet;
-        queryClient.setQueryData(['user','snippet',postData.authorId],authorDetails)
-      }
-      updatedDoc.hasLiked = (await getDoc(doc(collection(db,`posts/${postId}/likedby`),authState.user?.uid))).exists();
-
-      //console.log("Updated doc!",updatedDoc)
-      queryClient.setQueryData(['post',postId],updatedDoc)
-      return postId
-  }
 
   const getPostFromCache =  (postId:string) => {
     const post : IPost | undefined = queryClient.getQueryData(['post',postId])
@@ -59,7 +66,7 @@ const Home = () => {
 
       let docData = {...doc.data()} as IPostStored;
       //console.log(doc.id,doc.data())
-      return getPostIdandCacheDetails(docData,doc.id)
+      return getPostsIdAndCacheDetails(docData,doc.id,queryClient,authState.user?.uid)
     })
     const data = await Promise.all(promises)
     
@@ -159,7 +166,7 @@ const Home = () => {
         "authComplete": false,
         "name": "2019bec072",
         "numPosts": 5,
-        "avatar": "",
+        "avatarUrl": "",
         "username": "2019b87345",
         "about": ""
     }

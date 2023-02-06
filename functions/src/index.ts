@@ -28,7 +28,7 @@ exports.afterAuthUser = functions
       }
       const newUser = {
         name: user.displayName || newDisplayName,
-        avatar: user.photoURL || "",
+        avatar: user.photoURL || 0,
         about: "",
         username: newUserName,
         numPosts: 0,
@@ -118,7 +118,7 @@ exports.postLikedTrigger = functions
     .region("asia-south1")
     .firestore.document("/posts/{postId}/likedby/{userLikedId}")
     .onCreate(async (snap, context)=>{
-      const postId = context.params.postId;
+      const postId : string = context.params.postId;
       // const userLikedId = context.params.userLikedId;
       // const authorId = snap.data().authorId;
       // console.log("Snap", snap);
@@ -132,12 +132,11 @@ exports.postLikedTrigger = functions
           });
       return documentRef;
     });
-
 exports.postDisLikedTrigger = functions
     .region("asia-south1")
     .firestore.document("/posts/{postId}/likedby/{userLikedId}")
     .onDelete(async (snap, context)=>{
-      const postId = context.params.postId;
+      const postId : string = context.params.postId;
       const documentRef = admin.firestore()
           .doc(`posts/${postId}`)
           .update({
@@ -163,4 +162,35 @@ exports.newStoryCreatedTrigger = functions
             "numStories": FieldValue.increment(1),
           });
       return Promise.all([documentRef, documentRef2]);
+    });
+exports.newAvatarUploaded = functions
+    .region("asia-south1")
+    .storage.object()
+    .onFinalize(async (object)=>{
+      if (!object.name) return Promise<void>;
+      // functions.logger.log("created new avatar", object);
+      // functions.logger.log("name of avatar", object.name);
+      const path = object.name.split("/");
+      // console.log(path)
+      if (path.length!==3 || path[0]!=="users" ||
+        path[2].slice(0, 6)!=="avatar" || path[2].length > 10) {
+        return Promise<void>;
+      }
+      const user = await admin.firestore()
+          .doc(`users/${path[1]}`)
+          .get();
+      if (!user.exists) return;
+      let numUpdates = 0;
+      if (user.data() && typeof user.data()?.avatar === "string" ) {
+        numUpdates = 0;
+      } else {
+        numUpdates = user.data()?.avatar + 1 || 1;
+      }
+
+      const updatedUserRef = await admin.firestore()
+          .doc(`users/${path[1]}`)
+          .update({
+            avatar: numUpdates,
+          });
+      return updatedUserRef;
     });

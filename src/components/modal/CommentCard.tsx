@@ -8,7 +8,7 @@ export const CommentCard = ({comment}:{comment:IComment}) => {
         <div className='w-auto h-fit p-1 pl-3 flex'>
           <div className='w-fit h-full'>
             <img className="h-8 w-8 rounded-full"
-                src={(!comment.user.avatar || comment.user.avatar==="")?"/abstract-user.svg":comment.user.avatar}
+                src={(!comment.user.avatarUrl || comment.user.avatarUrl==="")?"/abstract-user.svg":comment.user.avatarUrl}
                 />
           </div>
           <div className='w-auto h-full px-2'>
