@@ -118,7 +118,7 @@ const Home = () => {
   },[loader,observerCallback])
 
   return (
-    <div className='overflow-y-hidden'>
+    <div className='overflow-y-hidden mx-auto w-fit'>
       Home {import.meta.env.VITE_FRONT_END_URL}
       What is going on!
       {hasNextPage}
@@ -129,7 +129,7 @@ const Home = () => {
           <p>There was an error</p>
         ) : (
           //@ts-ignore
-          <div className='py-10'>
+          <div className='py-10' style={{maxWidth:'500px'}}>
             {
               postFeed && postFeed.pages.map((page,pageNum)=>{
                 return page.data.map((postId,index)=>{

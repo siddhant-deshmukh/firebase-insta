@@ -54,11 +54,11 @@ function App() {
     if(authState && authState.authenticated ==='Yes'){
       return (
         <div className={`App flex h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal'))?"overflow-y-hidden":"overflow-y-auto"}`}>
-          <aside className="w-64 fixed hidden lg:block" aria-label="Sidebar">
+          <aside className="w-64 fixed hidden xl:block" aria-label="Sidebar">
             <NavBar />
           </aside>
           
-          <div className={`w-auto mx-auto`} style={{maxWidth:'500px'}}>
+          <div className={` w-screen`}>
             <Routes>
               <Route index element={<Home/>}/> 
               <Route path="/p/:postId" element={<Post/>}/> 

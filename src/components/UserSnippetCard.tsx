@@ -24,21 +24,56 @@ const UserSnippetCard = ({ author } : {author : IUserSnippet | null | undefined}
 
         </Link>
         <div 
-          className={`${(showPopover)?"":"hidden"}  z-20 w-fit h-fit  bg-white rounded-xl border  border-gray-200 absolute left-8 top-14`}
-          
+          className={`${(showPopover)?"":"hidden"} w-80 z-20  h-fit  bg-gray-100 rounded-xl border  border-gray-200 absolute left-8 top-8`}
+          onMouseEnter={()=>{setShowPopover(true)}}
+          onMouseLeave={()=>{setShowPopover(false)}}
           >
-            <div className='flex    h-fit'>
-              <div className='p-3 w-fit items-center'>
-                <img className="h-16 w-16  rounded-full "
-                    src={(!author.avatarUrl || author.avatarUrl==="")?"/abstract-user.svg":author.avatarUrl}
-                    />
+          <div className="flex flex-wrap w-full items-center p-1 ">
+            <div className="flex items-center w-full space-x-1">
+              {/* <!-- profile image --> */}
+              <div className='block' style={{width:'30%'}}>
+                <img className="w-20 h-20 border border-black object-cover rounded-full p-1"
+                  src={author.avatarUrl} alt="profile" />
               </div>
-              <div className=" w-52 py-4">
-                  <span className="text-sm font-semibold group-hover:underline antialiased block leading-tight">{author.name}</span>
-                  <span className="text-gray-600 text-xs block">{author.username}</span>
-                  <span>{author.about}</span>
+              <div className=" " style={{width:'70%'}}>
+                <div className='flex w-full items-center justify-between space-x-2 pr-3'>
+                  <h2 className="text-base h-full inline-block font-semibold">
+                    {author.username}
+                  </h2>
+                  {author.relationWithUser === '' && <button className="bg-blue-500 px-2 py-1 
+                      text-white font-semibold text-sm rounded  text-center 
+                      sm:inline-block "
+                    onClick={(event) => { event.preventDefault();  }}>Follow</button>} 
+                    {/* changeUserFollowState() */}
+                  {author.relationWithUser === 'following' && <button className="bg-gray-300 px-2 py-1 
+                      text-gray-500 font-semibold text-sm rounded  text-center 
+                      sm:inline-block "
+                    onClick={(event) => { event.preventDefault(); }}>Following</button>}
+                </div>
+
+                <div className="text-sm ">
+                  <h1 className="font-normal">{author.name}</h1>
+                  <p className='font-light whitespace-pre-wrap'>{author.about.slice(0,200)}</p>
+                </div>  
               </div>
             </div>
+            <ul className="flex w-full justify-around space-x-8 border-t 
+              text-center p-2 text-gray-600 leading-snug text-sm">
+              <li>
+                <span className="font-semibold text-gray-800 block">{author.numPosts}</span>
+                posts
+              </li>
+
+              <li>
+                <span className="font-semibold text-gray-800 block">{author.numFollowers || 0}</span>
+                followers
+              </li>
+              <li>
+                <span className="font-semibold text-gray-800 block">{author.numFollowing || 0}</span>
+                following
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     )

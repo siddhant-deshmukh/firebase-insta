@@ -40,6 +40,7 @@ exports.afterAuthUser = functions
         authComplete: false,
         numFollowing: 0,
         numFollowers: 0,
+        updatedData: 0,
       };
 
       const collectionRef = admin.firestore().doc(`users/${user.uid}`)
@@ -193,4 +194,49 @@ exports.newAvatarUploaded = functions
             avatar: numUpdates,
           });
       return updatedUserRef;
+    });
+exports.userDataUpdated = functions
+    .region("asia-south1")
+    .firestore.document("/users/{userId}")
+    .onUpdate(async (change, context)=>{
+      // console.log(change);
+      const userId = context.params.userId;
+      const beforeDocData = change.before.data();
+      const afterDocData = change.after.data();
+
+      if (beforeDocData.username !== afterDocData.username) {
+        const newDocData = {
+          ...beforeDocData,
+          about: afterDocData.about,
+          name: afterDocData.name,
+          updatedData: beforeDocData.updatedData+1 || 1,
+          username: beforeDocData.username,
+        };
+        const collectionRef = admin.firestore().collection("users");
+        const querySnapshot = await collectionRef
+            .where("username", "==", afterDocData.username).get();
+        querySnapshot.forEach((document)=>{
+          console.log(document.data());
+        });
+        console.log("Length", querySnapshot.docs.length);
+        if (querySnapshot.docs.length > 1) {
+          // newDocData.username = afterDocData.username;
+          await admin.firestore().doc(`users/${userId}`).delete();
+          const settingDoc = admin.firestore()
+              .doc(`users/${userId}`).create(newDocData);
+          return settingDoc;
+        } else {
+          const updatedDocPromise = admin.firestore().doc(`users/${userId}`)
+              .update({
+                updatedData: beforeDocData.updatedData+1 || 1,
+              });
+          return updatedDocPromise;
+        }
+      } else {
+        const updatedDocPromise = admin.firestore().doc(`users/${userId}`)
+            .update({
+              updatedData: beforeDocData.updatedData+1 || 1,
+            });
+        return updatedDocPromise;
+      }
     });

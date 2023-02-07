@@ -26,11 +26,11 @@ export const AppContext = React.createContext<IAuthContext>(initialContext);
 export const getAvatarUrl = async (userId: string) => {
     try{
         const url = await getDownloadURL(ref(storage, `users/${userId}/avatar`))
-        console.log("Get Avatar Url ", url)
+        // console.log("Get Avatar Url ", url)
         if (url) return url;
         else return undefined
     }catch (err){
-        console.log('to find user avatar',userId, err)
+        // console.log('to find user avatar',userId, err)
         return undefined
     }
 }
@@ -62,7 +62,7 @@ export const getUserData = async (userId:string,queryClient: QueryClient | undef
         uid: userId,
         relationWithUser
     }
-    console.log("user",userId,userSnippet)
+    // console.log("user",userId,userSnippet)
     if(queryClient) queryClient.setQueriesData(['user','snippet',userId],userSnippet) //Caching data
     return userSnippet as IUserSnippet;
 }
