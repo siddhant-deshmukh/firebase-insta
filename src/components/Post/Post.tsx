@@ -10,21 +10,21 @@ import UserSnippetCard from '../UserSnippetCard';
 
 export const Post = ({ post  } : {post: IPost}) => {
   const [currentIndex,setCurrentIndex] = useState<number>(0);
-  const [comments,setComments] = useState([]);
   let [searchParams, setSearchParams] = useSearchParams();
   const { authState } = useContext(AppContext)
   const queryClient = useQueryClient()
   const [author,setAuthor] = useState<IUserSnippet | null>(null)
   const [imgLoaded,setImgLoaded] = useState<boolean>(false)
+  
   const changeCacheState = (newValue : boolean) => {
     const oldPost : IPost | undefined = queryClient.getQueryData(['post',post.postId])
-    // console.log(oldPagesArray?.pages[pageNum])
+    //console.log(oldPagesArray?.pages[pageNum])
 
     if(oldPost && oldPost.numLikes && oldPost.hasLiked){
         const newPost = {...oldPost,hasLiked:newValue,numLikes:(newValue)?(oldPost.numLikes+1):(oldPost.numLikes-1)}
         queryClient.setQueryData(['post',post.postId],newPost)
+        console.log("old",oldPost,{...oldPost,hasLiked:newValue,numLikes:(newValue)?(oldPost?.numLikes+1):(oldPost?.numLikes-1)})
     }
-    // console.log("old",oldPagesArray)
     // console.log(newPagesArray)
   }
   const updateLikedState = async ()=>{
@@ -43,6 +43,7 @@ export const Post = ({ post  } : {post: IPost}) => {
             }).then((onFulfield)=>{
                 // setIsLiked(true)
                 // queryClient.setQueryData(['postFeed',pageNum,index,'hasLiked'],true)
+                console.log("Liked !!!",onFulfield)
                 changeCacheState(true)
             }).catch((err)=>{
                 console.log("Something goes wrong to change liked state",err)
@@ -61,7 +62,7 @@ export const Post = ({ post  } : {post: IPost}) => {
   },[setAuthor])
   return (
     <div className="bg-gray-100 p-4 w-auto" >
-        <div className="bg-white max-h-full border rounded-sm">
+        <div className="bg-white max-h-full border roundedauthor-sm">
             <UserSnippetCard author={post.author} />
 
             <div className='relative w-full overflow-y-hidden h-full flex items-center' style={{minHeight:'300px',maxHeight:'600px'}}>
