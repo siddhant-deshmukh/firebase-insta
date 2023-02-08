@@ -34,7 +34,6 @@ export interface IPostStored{
     numComments?:number,
 }
 export interface IPost extends IPostStored{
-    author : IUserSnippet,
     imgUrls : string[],
     postId : string,
     hasLiked? : boolean,

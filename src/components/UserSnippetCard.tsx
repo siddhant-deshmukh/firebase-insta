@@ -8,9 +8,8 @@ const UserSnippetCard = ({ author } : {author : IUserSnippet | null | undefined}
   if(author){
     return (
       <div className="flex w-full relative items-center px-4 py-3">
-        <Link 
+        <Link to={`/u/${author.uid}`}
           className='group w-fit flex  items-center'
-          to={`/u/${author.uid}`}
           onMouseEnter={()=>{setShowPopover(true)}}
           onMouseLeave={()=>{setShowPopover(false)}}
           >
@@ -40,15 +39,13 @@ const UserSnippetCard = ({ author } : {author : IUserSnippet | null | undefined}
                   <h2 className="text-base h-full inline-block font-semibold">
                     {author.username}
                   </h2>
-                  {author.relationWithUser === '' && <button className="bg-blue-500 px-2 py-1 
-                      text-white font-semibold text-sm rounded  text-center 
-                      sm:inline-block "
-                    onClick={(event) => { event.preventDefault();  }}>Follow</button>} 
+                  {author.relationWithUser === '' && <Link to={`/u/${author.uid}`} 
+                    className="bg-blue-500 px-2 py-1 text-white font-semibold text-sm rounded  text-center  sm:inline-block "
+                    onClick={(event) => { event.preventDefault();  }}>Follow</Link>} 
                     {/* changeUserFollowState() */}
-                  {author.relationWithUser === 'following' && <button className="bg-gray-300 px-2 py-1 
-                      text-gray-500 font-semibold text-sm rounded  text-center 
-                      sm:inline-block "
-                    onClick={(event) => { event.preventDefault(); }}>Following</button>}
+                  {author.relationWithUser === 'following' && <Link to={`/u/${author.uid}`} 
+                    className="bg-gray-300 px-2 py-1 text-gray-500 font-semibold text-sm rounded  text-center sm:inline-block "
+                    onClick={(event) => { event.preventDefault(); }}>Following</Link>}
                 </div>
 
                 <div className="text-sm ">

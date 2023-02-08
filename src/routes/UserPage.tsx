@@ -1,13 +1,45 @@
 import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter } from 'firebase/firestore';
 import { getDownloadURL, ref } from 'firebase/storage';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { useInfiniteQuery, useQueryClient } from 'react-query';
+import { QueryClient, useInfiniteQuery, useQueryClient } from 'react-query';
 import { Link, useParams } from 'react-router-dom'
 import PostTitleCard from '../components/Post/PostTitleCard';
 import AppContext, { getUserData } from '../context/AppContext';
 import { db, storage } from '../firebase';
 import { IPost, IPostSnippet, IPostStored, IUserSnippet, IUserStored } from '../types';
 import { getPostsIdAndCacheDetails } from './Home';
+
+export const changeUserFollowState = (userInfo: IUserSnippet | null,setUserInfo: React.Dispatch<React.SetStateAction<IUserSnippet | null>>, queryClient:QueryClient,userId : string | undefined) => {
+  //console.log("Here!!!!!!!!!!11", userInfo)
+  if (!userInfo) return;
+  if (userInfo.relationWithUser === "self") return;
+
+  if (userInfo.relationWithUser === 'following') {
+    console.log(`users/${userId}/following/${userInfo.uid}`)
+    deleteDoc(doc(db, `users/${userId}/following/${userInfo.uid}`))
+      .then((value) => {
+        console.log("Sucessfully updated state!", value)
+        setUserInfo((prev) => {
+          if (prev)
+            return { ...prev, relationWithUser: '',numFollowers:prev.numFollowers || 1 -1 };
+          else return null
+        })
+      }).catch((err) => {
+        console.log("error in unfollowing!", err)
+      })
+  } else {
+    setDoc(doc(db, `users/${userId}/following/${userInfo.uid}`), {
+      exists: true
+    }).then((value) => {
+      console.log("Sucessfully updated state!", value)
+      setUserInfo((prev) => {
+        if (prev)
+          return { ...prev, relationWithUser: 'following',numFollowers:prev.numFollowers || 0 +1 };
+        else return null
+      })
+    })
+  }
+}
 
 const UserPage = () => {
 
@@ -19,41 +51,6 @@ const UserPage = () => {
   const postPerPage = 10
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
-
-  const changeUserFollowState = useCallback(() => {
-    console.log("Here!!!!!!!!!!11", userInfo)
-    if (!userInfo) return;
-    if (userInfo.relationWithUser === "self") return;
-
-    const selfId = authState.user?.uid
-    console.log("Meowwwwwwwwwwww  ")
-    console.log(userInfo.relationWithUser)
-    if (userInfo.relationWithUser === 'following') {
-      console.log(`users/${selfId}/following/${userId}`)
-      deleteDoc(doc(db, `users/${selfId}/following/${userId}`))
-        .then((value) => {
-          console.log("Sucessfully updated state!", value)
-          setUserInfo((prev) => {
-            if (prev)
-              return { ...prev, relationWithUser: '' };
-            else return null
-          })
-        }).catch((err) => {
-          console.log("error in unfollowing!", err)
-        })
-    } else {
-      setDoc(doc(db, `users/${selfId}/following/${userId}`), {
-        exists: true
-      }).then((value) => {
-        console.log("Sucessfully updated state!", value)
-        setUserInfo((prev) => {
-          if (prev)
-            return { ...prev, relationWithUser: 'following' };
-          else return null
-        })
-      })
-    }
-  }, [userInfo, setUserInfo])
 
   const fetchPosts = async ({ pageParam = 1 }) => {
     // const q_ = (lastPostDoc.current)? 
@@ -126,16 +123,16 @@ const UserPage = () => {
     return (
       <div className='w-full mx-auto h-full place-content-center ' style={{ maxWidth: '800px' }} >
         <div className="lg:mx-2 mb-8">
-          <header className="flex flex-wrap items-center p-4 md:py-8">
-            <div className="md:w-3/12 md:ml-16">
+          <header className="flex flex-wrap items-center h-fit p-2 md:py-8">
+            <div className="md:w-3/12 md:ml-16 h-fit">
               {/* <!-- profile image --> */}
-              <img className="w-20 h-20 md:w-40 md:h-40 object-cover rounded-full p-1"
+              <img className="w-20 h-20 sm:w-24 sm:h-24  md:w-40 md:h-40 object-cover rounded-full p-1"
                 src={userInfo.avatarUrl} alt="profile" />
             </div>
             {/* <!-- profile meta --> */}
-            <div className="w-9/12 md:w-7/12 ml-4">
-              <div className="md:flex md:flex-wrap md:items-center mb-4">
-                <h2 className="text-3xl inline-block font-light md:mr-2 mb-2 sm:mb-0">
+            <div className="w-9/12 md:w-7/12 ml-2 h-fit sm:ml-4">
+              <div className="md:flex md:flex-wrap md:items-center mb-4 flex justify-between">
+                <h2 className="text-xl md:text-3xl  inline-block font-light md:mr-2 sm:mb-0">
                   {userInfo.username}
                 </h2>
 
@@ -150,11 +147,11 @@ const UserPage = () => {
                 {userInfo.relationWithUser === '' && <button className="bg-blue-500 px-2 py-1 
                     text-white font-semibold text-sm rounded  text-center 
                     sm:inline-block "
-                  onClick={(event) => { event.preventDefault(); changeUserFollowState() }}>Follow</button>}
+                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo,setUserInfo,queryClient,authState.user?.uid) }}>Follow</button>}
                 {userInfo.relationWithUser === 'following' && <button className="bg-gray-300 px-2 py-1 
                     text-gray-500 font-semibold text-sm rounded  text-center 
                     sm:inline-block "
-                  onClick={(event) => { event.preventDefault(); changeUserFollowState() }}>Following</button>}
+                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo,setUserInfo,queryClient,authState.user?.uid) }}>Following</button>}
                 {userInfo.relationWithUser === 'self' && <Link to="/update-profile" className="bg-gray-300  px-2 py-1 
                     text-gray-500 font-semibold text-sm rounded  text-center 
                     sm:inline-block">Edit Profile</Link>}

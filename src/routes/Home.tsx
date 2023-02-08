@@ -1,13 +1,12 @@
 import { QueryClient, useQueryClient } from 'react-query'
 import { collection, doc, DocumentData, endAt, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, startAfter } from 'firebase/firestore'
 import { getDownloadURL, ref } from 'firebase/storage'
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import InfiniteScroll from 'react-infinite-scroller'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery } from 'react-query'
 import { Post } from '../components/Post/Post'
-import AppContext, { getAvatarUrl, getUserData } from '../context/AppContext'
+import AppContext from '../context/AppContext'
 import { db, storage } from '../firebase'
-import { IPost, IPostStored, IUser, IUserSnippet, IUserStored } from '../types'
+import { IPost, IPostStored } from '../types'
 
 export async function getPostsIdAndCacheDetails(postData : IPostStored,postId:string,queryClient : QueryClient,ownUid:string | undefined) {
 
@@ -19,14 +18,12 @@ export async function getPostsIdAndCacheDetails(postData : IPostStored,postId:st
     urls[i]= getDownloadURL(ref(storage,`posts/${postData.authorId}/${postId}/${i}`))
   }
   let imgUrlsPromise =  Promise.all(urls)
-  let authorPromise  =  getUserData(postData.authorId,queryClient,ownUid)
   let checkLikedPromise =  getDoc(doc(collection(db,`posts/${postId}/likedby`),ownUid))
 
-  const [imgUrls,author,checkLiked] = await Promise.all([imgUrlsPromise,authorPromise,checkLikedPromise])
+  const [imgUrls,checkLiked] = await Promise.all([imgUrlsPromise,checkLikedPromise])
   const finalDoc : IPost = {
     ...postData,
     imgUrls,
-    author,
     hasLiked: checkLiked.exists(),
     postId
   }
