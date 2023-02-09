@@ -2,10 +2,22 @@ import React, { useContext, useState } from 'react'
 import AppContext from '../../context/AppContext'
 import { IUser, IUserOwn } from '../../types'
 import imageCompression from 'browser-image-compression'
-import { doc, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db, storage } from '../../firebase'
 import { ref, uploadBytes } from 'firebase/storage'
 
+interface EditUserErrors{
+  name?:string,
+  username?:string,
+  about?:string,
+  email?:string,
+  avatar?:string,
+  info?:string
+}
+interface onSucess{
+  info?:string,
+  avatar?:string,
+}
 const UpdateProfile = () => {
 
   const { authState } = useContext(AppContext)
@@ -13,14 +25,36 @@ const UpdateProfile = () => {
   const [avatar, setAvatar] = useState<string | undefined>(authState.user?.avatarUrl)
   const [toggleChangeAvatarModal, setChangeAvatarModal] = useState<boolean>(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [errors,setErros] = useState<EditUserErrors>({})
 
   const handleOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let fieldName = event.target.name
+    let value = (event.target.value as string)
     setUploadFormData((prev) => {
       return {
         ...prev,
-        [event.target.name]: event.target.value
+        [fieldName]: value 
       }
     })
+    if(fieldName === 'name'){
+      if(typeof value === 'string' && value.length < 15 ){
+        setErros((prev)=>{return {...prev,name:undefined}})
+      }else{
+        setErros((prev)=>{return {...prev,name:'length of name should be less than 15'}})
+      }
+    }else if(fieldName === 'username'){
+      if(typeof value === 'string' && value.length < 10 && value.indexOf(' ')===-1){
+        setErros((prev)=>{return {...prev,username:undefined}})
+      }else{
+        setErros((prev)=>{return {...prev,username:'length of username should be less than 10 and should not contain space'}})
+      }
+    }else if(fieldName === 'about'){
+      if(typeof value === 'string' && value.length < 50 ){
+        setErros((prev)=>{return {...prev,about:undefined}})
+      }else{
+        setErros((prev)=>{return {...prev,about:'length of name should be less than 50'}})
+      }
+    }
   }
   const handleUpdatingAvatar = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -28,13 +62,24 @@ const UpdateProfile = () => {
     const fileCompressionOptions = {
       maxSizeMB: 0.8
     }
+    if(file.size > 2*1024*1024){
+      setErros((prev)=>{return {...prev,avatar:'File size should not be more than 2MB'}})
+    }else{
+      setErros((prev)=>{return {...prev,avatar:undefined}})
+    }
     console.log("initial file", file)
     imageCompression(file, fileCompressionOptions).then((cFile) => {
       setAvatarFile(cFile)
       setAvatar(URL.createObjectURL(cFile))
     })
   }
-  const handleSubmitChanges = (finalData : IUserOwn) => {
+  const handleSubmitChanges = async (finalData : IUserOwn) => {
+    const checkUserNameQuery = query(collection(db,'users'),where('username','==',finalData.username))
+    const docs_ = await getDocs(checkUserNameQuery)
+    if(docs_.docs.length > 1){
+      setErros((prev)=>{return {...prev,username:'Already exist! Try another!'}})
+      return;
+    }
     console.log(`users/${authState.user?.uid}`,({
       name : finalData.name,
       about : finalData.about,
@@ -87,6 +132,7 @@ const UpdateProfile = () => {
               name="name" id="small-input"
               className="block w-96 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
               onChange={handleOnChange} />
+            {errors.name && <p className="mt-2 text-xs text-red-600 dark:text-red-500">{errors.name}</p>}
           </div>
         </div>
         <div className='w-full flex space-x-8 justify-between items-center'>
@@ -96,6 +142,7 @@ const UpdateProfile = () => {
           <div className='w-9/12'>
             {/* <label htmlFor="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Small input</label> */}
             <input type="text" onChange={handleOnChange} value={uploadFormData.username} name="username" id="small-input" className="block w-96 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+            {errors.username && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.username}</p>}
           </div>
         </div>
         <div className='w-full flex space-x-8 justify-between items-center'>
@@ -106,8 +153,10 @@ const UpdateProfile = () => {
             {/* <label htmlFor="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Small input</label> */}
             <textarea
               value={uploadFormData.about}
-              onChange={(event) => { event.preventDefault(); setUploadFormData((prev) => { return { ...prev, about: event.target.value } }) }}
+              // @ts-ignore
+              onChange={handleOnChange}
               name="about" id="small-input" className="block max-h-12 w-96 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+            {errors.about && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.about}</p>}
           </div>
         </div>
         <div className='w-full flex space-x-8 justify-between items-center'>
@@ -116,7 +165,7 @@ const UpdateProfile = () => {
           </span>
           <div className='w-9/12'>
             {/* <label htmlFor="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Small input</label> */}
-            <input type="text" value={uploadFormData.email} onChange={handleOnChange} name="email" id="small-input" className="block w-96 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+            <input type="text" disabled value={uploadFormData.email} onChange={handleOnChange} name="email" id="small-input" className="block w-96 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 sm:text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
           </div>
         </div>
         <button 
@@ -143,6 +192,7 @@ const UpdateProfile = () => {
                 id="file_input" type="file"
                 onChange={handleUpdatingAvatar}
               ></input>
+              {errors.avatar && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.avatar}</p>}
 
               <div className='flex place-content-end mt-10 items-center w-full'>
                 <button

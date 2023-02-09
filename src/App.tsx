@@ -3,7 +3,7 @@ import { Route, Routes, useLocation, useParams, useSearchParams } from 'react-ro
 import ConfirmEmail from './components/AuthRelated/ConfirmEmail'
 import { ForgetPassword } from './components/AuthRelated/ForgetPassword'
 import Login from './components/AuthRelated/Login'
-import NavBar from './components/SideNavBar'
+import NavBar from './components/NavBar/SideNavBar'
 import SignUp from './components/AuthRelated/SignUp'
 import AppContext, { IAuthContext } from './context/AppContext'
 import Authenticate from './routes/Authenticate'
@@ -44,13 +44,19 @@ function App() {
       )
     } 
    */
-  if(authLoading ==='Yes' || authLoading==='initial' || authState.authenticated === 'Partial'){
+  if(authLoading ==='Yes' || authLoading==='initial'){
     return(<div className='w-screen relative h-screen '>
       <div className='mx-auto absolute inset-1/3 w-fit h-fit'>
         <img src='/insta-logo.svg' alt='loading' className='w-52'/>
       </div>
     </div>)
-  } else {
+  } else if(authState.authenticated === 'Partial'){
+    return(
+      <div>
+        <ConfirmEmail />
+      </div>
+    )
+  }  else {
     if(authState && authState.authenticated ==='Yes'){
       return (
         <div className={`App flex h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal'))?"overflow-y-hidden":"overflow-y-auto"}`}>

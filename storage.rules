@@ -1,8 +1,25 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
+    match /users/{userId}/avatar {
+      allow read : if request.auth.token.email_verified;
+      allow create,update : if request.auth.token.email_verified
+      		&& request.auth.uid == userId
+          && firestore.get( /databases/(default)/documents/users/$(request.auth.uid)).data.avatar < 5
+          && request.resource.size < 1*1024*1024 
+          && request.resource.size > 1024;      
+      allow delete : if request.auth.token.email_verified
+      		&& request.auth.uid == userId;
+    }
+    match /posts/{userId}/{postId}/{media_num} {
+      allow read : if request.auth.token.email_verified;
+      allow create : if request.auth.token.email_verified
+      		&& request.auth.uid == userId
+          && firestore.get( /databases/(default)/documents/posts/$(postId)).data.authorId == userId
+          && firestore.get( /databases/(default)/documents/posts/$(postId)).data.numMedia > media_num
+          && request.resource.size < 1*1024*1024 
+          && request.resource.size > 1024;      
+      allow delete, create : if false;
     }
   }
 }

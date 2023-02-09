@@ -141,6 +141,7 @@ export const PostDisplay = () => {
         <div className={`modal ${(searchParams.get('showPostModal') === 'Yes' && searchParams.get('postId')) ? "" : "hidden"} 
         overflow-x-hidden h-screen fade fixed  flex items-center top-0 left-0  w-full outline-none bg-black bg-opacity-40  overflow-y-auto`}
           id="exampleModalScrollable" tabIndex={-1} py-20 aria-labelledby="exampleModalScrollableLabel" aria-hidden="true">
+
           <button type="button"
             className="absolute right-4 top-4 btn-close box-content w-fit h-fit p-2 items-center text-black border-none rounded-full opacity-50 bg-white focus:shadow-none focus:outline-none focus:opacity-100 hover:bg-slate-100 hover:opacity-75 hover:no-underline"
             data-bs-dismiss="modal" aria-label="Close"
@@ -149,15 +150,15 @@ export const PostDisplay = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="modal-dialog  modal-dialog-scrollable flex  max-h-screen w-11/12 h-11/12 relative mx-auto     pointer-events-none">
+
+          <div className="modal-dialog  modal-dialog-scrollable flex h-10/12  max-h-screen w-full  relative mx-auto pointer-events-none">
             <div
-              className="modal-content mx-auto border-none rounded-xl max-w-full w-fit  max-h-full  p-0.5 shadow-lg  relative  flex  pointer-events-auto bg-white bg-clip-padding  outline-none text-current"
+              className="modal-content mx-auto h-auto border-none rounded-xl max-w-full w-fit  max-h-full  p-0.5 shadow-lg  relative  flex  pointer-events-auto bg-clip-padding  outline-none text-current"
             >
               {
                 post &&
-                <div className='relative flex items-center w-fit h-full '
-                  style={{ minWidth: '400px', minHeight: '500px' }}>
-                  <img src={post?.imgUrls[currentIndex]} className="mx-auto overflow-y-hidden" />
+                <div className='relative flex items-center w-auto md:w-8/12  h-auto max-h-full max-w-fit'>
+                  <img src={post?.imgUrls[currentIndex]} className="mx-auto w-fit max-w-full md:max-w-xl  overflow-y-hidden" style={{  maxHeight: '800px' }} />
                   <button
                     className='absolute inset-y-1/2 h-fit left-0  px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev - 1) }}
@@ -165,7 +166,7 @@ export const PostDisplay = () => {
                   >
                     {'<'}
                   </button>
-                  <button
+                  <button 
                     className='absolute inset-y-1/2 h-fit right-0 px-2 w-fit rounded-full text-white bg-black opacity-40'
                     onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev + 1) }}
                     disabled={(currentIndex > post?.imgUrls?.length - 2) ? true : false}
@@ -176,8 +177,7 @@ export const PostDisplay = () => {
               }
               {
                 post &&
-                <div className='flex flex-col bg-white w-fit '
-                  style={{ minWidth: '400px', minHeight: '500px' }}>
+                <div className='hidden md:flex flex-col bg-white w-4/12  h-full' style={{maxWidth:'400px'}} >
                   <UserSnippetCard author={author} />
 
                   {/* list of comments */}

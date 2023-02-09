@@ -54,5 +54,5 @@ export interface ICommentStored{
 }
 export interface IComment extends ICommentStored{
     commentId : string,
-    user: IUserSnippet,
+    user?: IUserSnippet,
 }

@@ -32,7 +32,7 @@ const UserSnippetCard = ({ author } : {author : IUserSnippet | null | undefined}
               {/* <!-- profile image --> */}
               <div className='block' style={{width:'30%'}}>
                 <img className="w-20 h-20 border border-black object-cover rounded-full p-1"
-                  src={author.avatarUrl} alt="profile" />
+                  src={(!author.avatarUrl || author.avatarUrl==="")?"/abstract-user.svg":author.avatarUrl} alt="profile" />
               </div>
               <div className=" " style={{width:'70%'}}>
                 <div className='flex w-full items-center justify-between space-x-2 pr-3'>

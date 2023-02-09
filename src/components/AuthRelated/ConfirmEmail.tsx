@@ -27,18 +27,6 @@ const ConfirmEmail = () => {
   const sendLink = useCallback(() => {
     console.log('Here to send the link!',authState?.user?.email)
 
- 
-    //const email = authState?.user?.email as string
-    // sendSignInLinkToEmail(auth, email , actionCodeSettings)
-    //     .then(() => {
-    //         window.localStorage.setItem('emailForSignIn', email);
-    //         console.log("Email has been sent to verify!",email)
-    //     })
-    //     .catch((error) => {
-    //         const errorCode = error.code;
-    //         const errorMessage = error.message;
-    //         console.log(error)
-    //     });
     sendEmailVerification(auth.currentUser as User,actionCodeSettings)
         .then((onfulfilled)=>{
             console.log("Send Email Verifcation",onfulfilled,auth.currentUser)
@@ -54,22 +42,28 @@ const ConfirmEmail = () => {
   return (
     <div>
         <div className="h-screen bg-gray-50 flex flex-col justify-center items-center">
-            <div className="bg-white border border-gray-300 w-80 py-8 flex items-center flex-col mb-3">
-                <img src="/Instagram-Logo.svg" className="w-44 " alt="Instagram" />
-
-                <div className='p-3'>
-                    An email has been send for verification of your email. Please verify the email before procedding further
-                    <input className='px-3 py-1' type={'number'} />
+            <div className="bg-white border border-gray-300 w-fit px-8 flex items-center flex-col mb-3">
+                <img src="/Instagram-Logo.svg" className="w-44" alt="Instagram" />
+                <div className="flex p-4 mb-4 w-fit text-sm text-gray-800 rounded-lg dark:bg-gray-800 dark:text-blue-400" role="alert">
+                  <div>
+                    <ul className="w-fit ml-1 list-disc list-inside">
+                      <li>An email has been send for verification.</li>
+                      <li>Please check spam folder for email</li>
+                      <br></br>
+                      <li>I am Siddhant SD and you can trust me!!!</li>
+                      <li>So, in case of danger site alert go to details and slecect continue with unsafe site</li>
+                    </ul>
+                  </div>
                 </div>
-                
-                <div className='flex justify-between'>
+
+                <div className='flex justify-between w-full px-10 py-5'>
                     <button 
                         onClick={(event)=>{event.preventDefault(); signOut(auth)}}
-                        className="bg-white border border-gray-300 text-center w-auto py-4"
+                        className="border border-gray-300 rounded-lg bg-red-500 text-white text-center w-24 px-2"
                         >SignOut</button>
                     <button
                         onClick={(event)=>{event.preventDefault(); sendLink()}}
-                        className="bg-white border border-gray-300 text-center w-auto py-4"
+                        className="border border-gray-300 rounded-lg bg-blue-500 text-white text-center w-24 px-2"
                     >Resend Email</button>
                 </div>
             </div>

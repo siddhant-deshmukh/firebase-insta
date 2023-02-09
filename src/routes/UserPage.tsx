@@ -5,57 +5,62 @@ import { QueryClient, useInfiniteQuery, useQueryClient } from 'react-query';
 import { Link, useParams } from 'react-router-dom'
 import PostTitleCard from '../components/Post/PostTitleCard';
 import AppContext, { getUserData } from '../context/AppContext';
-import { db, storage } from '../firebase';
-import { IPost, IPostSnippet, IPostStored, IUserSnippet, IUserStored } from '../types';
+import { db } from '../firebase';
+import Loader from '../Loader';
+import { IPost, IPostStored, IUserSnippet } from '../types';
 import { getPostsIdAndCacheDetails } from './Home';
 
-export const changeUserFollowState = (userInfo: IUserSnippet | null,setUserInfo: React.Dispatch<React.SetStateAction<IUserSnippet | null>>, queryClient:QueryClient,userId : string | undefined) => {
+export const changeUserFollowState = (userInfo: IUserSnippet | null, setUserInfo: React.Dispatch<React.SetStateAction<IUserSnippet | null | undefined>>, queryClient: QueryClient, userId: string | undefined) => {
   //console.log("Here!!!!!!!!!!11", userInfo)
-  if (!userInfo) return;
-  if (userInfo.relationWithUser === "self") return;
+  try {
+    if (!userInfo) return;
+    if (userInfo.relationWithUser === "self") return;
 
-  if (userInfo.relationWithUser === 'following') {
-    console.log(`users/${userId}/following/${userInfo.uid}`)
-    deleteDoc(doc(db, `users/${userId}/following/${userInfo.uid}`))
-      .then((value) => {
+    if (userInfo.relationWithUser === 'following') {
+      console.log(`users/${userId}/following/${userInfo.uid}`)
+      deleteDoc(doc(db, `users/${userId}/following/${userInfo.uid}`))
+        .then((value) => {
+          console.log("Sucessfully updated state!", value)
+          setUserInfo((prev) => {
+            if (prev)
+              return { ...prev, relationWithUser: '', numFollowers: prev.numFollowers || 1 - 1 };
+            else return null
+          })
+        }).catch((err) => {
+          console.log("error in unfollowing!", err)
+        })
+    } else {
+      setDoc(doc(db, `users/${userId}/following/${userInfo.uid}`), {
+        exists: true
+      }).then((value) => {
         console.log("Sucessfully updated state!", value)
         setUserInfo((prev) => {
           if (prev)
-            return { ...prev, relationWithUser: '',numFollowers:prev.numFollowers || 1 -1 };
+            return { ...prev, relationWithUser: 'following', numFollowers: prev.numFollowers || 0 + 1 };
           else return null
         })
-      }).catch((err) => {
-        console.log("error in unfollowing!", err)
       })
-  } else {
-    setDoc(doc(db, `users/${userId}/following/${userInfo.uid}`), {
-      exists: true
-    }).then((value) => {
-      console.log("Sucessfully updated state!", value)
-      setUserInfo((prev) => {
-        if (prev)
-          return { ...prev, relationWithUser: 'following',numFollowers:prev.numFollowers || 0 +1 };
-        else return null
-      })
-    })
+    }
+  } catch (err) {
+    console.error("while changing follow state", err)
   }
 }
 
 const UserPage = () => {
 
   const { userId } = useParams();
-  const [userInfo, setUserInfo] = useState<IUserSnippet | null>(null);
+  const [userInfo, setUserInfo] = useState<IUserSnippet | undefined | null>(undefined);
   // const [relation,setRelation] = useState<'self' | 'follows' | 'desntFoloow' | null>(null)
   const queryClient = useQueryClient()
   const { authState } = useContext(AppContext)
   const postPerPage = 10
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
-
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const fetchPosts = async ({ pageParam = 1 }) => {
     // const q_ = (lastPostDoc.current)? 
     // (query(collection(db, `users/${userId}/posts`), orderBy('createdAt', 'desc'), startAfter(lastPostDoc.current), limit(postPerPage))) :
-    const q_ = query(collection(db, `users/${userId}/posts`),  limit(postPerPage))
+    const q_ = query(collection(db, `users/${userId}/posts`), limit(postPerPage))
     // console.log("query", userId, q_)
     const userFeedSnapshots_ = await getDocs(q_)
     if (!firstPostDoc.current) firstPostDoc.current = userFeedSnapshots_.docs[0]
@@ -63,7 +68,7 @@ const UserPage = () => {
     console.log("userFeedSnapshots_", userFeedSnapshots_.docs.length, lastPostDoc.current)
 
     const promises = userFeedSnapshots_.docs.map(async (currDoc) => {
-      const postDoc = (await getDoc(doc(db,`posts/${currDoc.id}`))).data() as IPostStored
+      const postDoc = (await getDoc(doc(db, `posts/${currDoc.id}`))).data() as IPostStored
       return getPostsIdAndCacheDetails(postDoc, currDoc.id, queryClient, authState.user?.uid)
     })
     const data = await Promise.all(promises)
@@ -103,6 +108,10 @@ const UserPage = () => {
       getUserData(userId, queryClient, authState.user?.uid).then((userData) => {
         if (userData) {
           setUserInfo(userData)
+          setErrorMsg(null)
+        } else {
+          setUserInfo(null)
+          setErrorMsg("User not found")
         }
       })
     }
@@ -119,7 +128,7 @@ const UserPage = () => {
     }
   }, [loader, observerCallback, setUserInfo])
 
-  if (userInfo) {
+  if (userInfo && !errorMsg) {
     return (
       <div className='w-full mx-auto h-full place-content-center ' style={{ maxWidth: '800px' }} >
         <div className="lg:mx-2 mb-8">
@@ -127,7 +136,7 @@ const UserPage = () => {
             <div className="md:w-3/12 md:ml-16 h-fit">
               {/* <!-- profile image --> */}
               <img className="w-20 h-20 sm:w-24 sm:h-24  md:w-40 md:h-40 object-cover rounded-full p-1"
-                src={userInfo.avatarUrl} alt="profile" />
+                src={userInfo.avatarUrl || '/abstract-user.svg'} alt="profile" />
             </div>
             {/* <!-- profile meta --> */}
             <div className="w-9/12 md:w-7/12 ml-2 h-fit sm:ml-4">
@@ -135,23 +144,14 @@ const UserPage = () => {
                 <h2 className="text-xl md:text-3xl  inline-block font-light md:mr-2 sm:mb-0">
                   {userInfo.username}
                 </h2>
-
-                {/* <!-- badge --> */}
-                {/* <span className="inline-block fas fa-certificate fa-lg text-blue-500 
-                           relative mr-6 text-xl transform -translate-y-2" aria-hidden="true">
-                  <i className="fas fa-check text-white text-xs absolute inset-x-0
-                           ml-1 mt-px"></i>
-                </span> */}
-
-                {/* <!-- follow button --> */}
                 {userInfo.relationWithUser === '' && <button className="bg-blue-500 px-2 py-1 
                     text-white font-semibold text-sm rounded  text-center 
                     sm:inline-block "
-                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo,setUserInfo,queryClient,authState.user?.uid) }}>Follow</button>}
+                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo, setUserInfo, queryClient, authState.user?.uid) }}>Follow</button>}
                 {userInfo.relationWithUser === 'following' && <button className="bg-gray-300 px-2 py-1 
                     text-gray-500 font-semibold text-sm rounded  text-center 
                     sm:inline-block "
-                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo,setUserInfo,queryClient,authState.user?.uid) }}>Following</button>}
+                  onClick={(event) => { event.preventDefault(); changeUserFollowState(userInfo, setUserInfo, queryClient, authState.user?.uid) }}>Following</button>}
                 {userInfo.relationWithUser === 'self' && <Link to="/update-profile" className="bg-gray-300  px-2 py-1 
                     text-gray-500 font-semibold text-sm rounded  text-center 
                     sm:inline-block">Edit Profile</Link>}
@@ -236,17 +236,33 @@ const UserPage = () => {
               </li>
             </ul>
             {/* <!-- flexbox grid --> */}
-            
+
           </div>
           <div className="w-full h-auto  grid grid-cols-3 gap-3">
             {/* <!-- post 1--> */}
             {
-              userPostFeed?.pages.map((page,pageNum)=>{
-                return page.data.map((postId,index)=>{
-                  let post  = queryClient.getQueryData(['post',postId]) as IPost
-                  console.log(index,postId,post)
+              isLoading && <div className='w-fit mx-auto'><Loader /></div>
+            }
+            {
+              isError && <div className='w-fit mx-auto'><div className="w-96 h-fit bg-red-100" style={{ maxWidth: '60%' }}>
+                <img src="https://i.imgur.com/qIufhof.png" className='w-full aspect-square' />
+
+                <h1 className='w-full py-4 text-xl font-bold text-center'>
+                  Internal server error
+                </h1>
+                <p className="text-blue-500 underline">
+                  try to <Link to={'/'}>Refresh</Link>
+                </p>
+              </div>
+              </div>
+            }
+            {
+              userPostFeed?.pages.map((page, pageNum) => {
+                return page.data.map((postId, index) => {
+                  let post = queryClient.getQueryData(['post', postId]) as IPost
+                  // console.log(index, postId, post)
                   return (<div key={postId} className="w-full border-gray-300 border overflow-hidden aspect-square">
-                    <PostTitleCard post={post}/>
+                    <PostTitleCard post={post} />
                   </div>)
                 })
               })
@@ -255,10 +271,25 @@ const UserPage = () => {
         </div>
       </div>
     )
+  } else if (userInfo === undefined && !errorMsg) {
+    return (
+      <div className='w-fit mx-auto'>
+        <Loader />
+      </div>
+    )
   } else {
     return (
-      <div>
-        Loading!!!
+      <div className='w-fit mx-auto'>
+        <div className="w-96 h-fit bg-red-100" style={{ maxWidth: '60%' }}>
+          <img src="https://i.imgur.com/qIufhof.png" className='w-full aspect-square' />
+
+          <h1 className='w-full py-4 text-xl font-bold text-center'>
+            User not found
+          </h1>
+          <p className="text-blue-500 underline">
+            <Link to={'/'}>Get back to home</Link>
+          </p>
+        </div>
       </div>
     )
   }

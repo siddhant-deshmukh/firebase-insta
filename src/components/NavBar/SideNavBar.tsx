@@ -1,14 +1,13 @@
 import React, { useContext } from 'react'
 import { Link, NavLink, useSearchParams } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
-import { auth } from '../firebase'
-import AppContext from '../context/AppContext'
+import { auth } from '../../firebase'
+import AppContext from '../../context/AppContext'
 
 const NavBar = () => {
   let [searchParams, setSearchParams] = useSearchParams();
   const { authState } = useContext(AppContext)
   return (
-    
    <div className="pb-4 flex flex-col overflow-y-auto rounded bg-white border-r  border-r-gray-300  dark:bg-gray-800 h-screen justify-between ">
       <div className='w-full'>
          <Link to={'/'} className="flex items-center w-full pl-5 py-7 h-fit  place-content-start">
@@ -34,13 +33,13 @@ const NavBar = () => {
                </NavLink>
             </li>
             <li>
-               <NavLink to="/explore" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+               <NavLink to="/#" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
                   <svg aria-label="Explore" className="w-6 h-6" color="#262626" fill="#262626" role="img" viewBox="0 0 24 24" ><polygon fill="none" points="13.941 13.953 7.581 16.424 10.06 10.056 16.42 7.585 13.941 13.953" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></polygon><polygon fillRule="evenodd" points="10.06 10.056 13.949 13.945 7.581 16.424 10.06 10.056"></polygon><circle cx="12.001" cy="12.005" fill="none" r="10.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></circle></svg>
                   <span className="flex-1 ml-3 whitespace-nowrap">Explore</span>
                </NavLink>
             </li>
             <li>
-               <NavLink to="/reels/videos" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+               <NavLink to="#" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
                   <svg aria-label="Reels" className="w-6 h-6" color="#262626" fill="#262626"  role="img" viewBox="0 0 24 24" >
                      <line fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" x1="2.049" x2="21.95" y1="7.002" y2="7.002"></line>
                      <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="13.504" x2="16.362" y1="2.001" y2="7.002"></line>
@@ -51,7 +50,7 @@ const NavBar = () => {
                </NavLink>
             </li>
             <li>
-               <NavLink to="/direct/inbox" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+               <NavLink to="#" className="flex items-center p-2 text-sm font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
                   <svg aria-label="Messenger" className="w-6 h-6" color="#262626" fill="#262626"  role="img" viewBox="0 0 24 24" ><path d="M12.003 2.001a9.705 9.705 0 1 1 0 19.4 10.876 10.876 0 0 1-2.895-.384.798.798 0 0 0-.533.04l-1.984.876a.801.801 0 0 1-1.123-.708l-.054-1.78a.806.806 0 0 0-.27-.569 9.49 9.49 0 0 1-3.14-7.175 9.65 9.65 0 0 1 10-9.7Z" fill="none" stroke="currentColor" strokeMiterlimit="10" strokeWidth="1.739"></path><path d="M17.79 10.132a.659.659 0 0 0-.962-.873l-2.556 2.05a.63.63 0 0 1-.758.002L11.06 9.47a1.576 1.576 0 0 0-2.277.42l-2.567 3.98a.659.659 0 0 0 .961.875l2.556-2.049a.63.63 0 0 1 .759-.002l2.452 1.84a1.576 1.576 0 0 0 2.278-.42Z" fillRule="evenodd"></path></svg>
                   <span className="flex-1 ml-3 whitespace-nowrap">Messages</span>
                </NavLink>
