@@ -16,10 +16,10 @@ service firebase.storage {
       allow create : if request.auth.token.email_verified
       		&& request.auth.uid == userId
           && firestore.get( /databases/(default)/documents/posts/$(postId)).data.authorId == userId
-          && firestore.get( /databases/(default)/documents/posts/$(postId)).data.numMedia > media_num
-          && request.resource.size < 1*1024*1024 
+          && firestore.get( /databases/(default)/documents/posts/$(postId)).data.numMedia > int(media_num)
+          && request.resource.size < 2*1024*1024 
           && request.resource.size > 1024;      
-      allow delete, create : if false;
+      allow delete, update : if false;
     }
   }
 }

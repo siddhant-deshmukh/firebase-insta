@@ -82,10 +82,12 @@ export const Post = ({ post }: { post: IPost }) => {
             {'>'}
           </button>
         </div>
-
+        <div className='flex items-center hit text-sm text-left text-gray-700  mx-4 mt-3 mb-2'>
+          <span className='text-black font-semibold mr-2'>@{author?.username}</span> {postState.desc}
+        </div>
         <div
           className="flex items-center hit justify-between mx-4 mt-3 mb-2"
-        >
+          >
           <div className="flex gap-4 items-center">
             <button
               className='w-fit h-fit'

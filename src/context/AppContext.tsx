@@ -7,19 +7,20 @@ import { getDownloadURL, ref } from "firebase/storage";
 import { QueryClient } from "react-query";
 
 export interface IAuthState {
-  authenticated: 'Yes' | 'No' | 'Partial',
+  authenticated: 'Yes' | 'No' | 'Partial' | 'Unknown',
   user?: IUserOwn
 }
 export interface IAuthContext {
   authState: IAuthState,
   authLoading: 'Yes' | 'No' | 'initial',
+  setAuthState? : React.Dispatch<React.SetStateAction<IAuthState>>,
 }
 const initialAuthState: IAuthState = {
-  authenticated: 'No'
+  authenticated: 'Unknown'
 }
 const initialContext: IAuthContext = {
   authState: initialAuthState,
-  authLoading: 'initial',
+  authLoading: 'Yes',
 }
 export const AppContext = React.createContext<IAuthContext>(initialContext);
 
@@ -119,35 +120,34 @@ export const AppProvider = ({ children }) => {
           authenticated: 'No'
         })
         console.log("error while getting user")
-      }).finally(() => {
-        setAuthLoading('No')
       })
     } else if(user && !user.emailVerified ){
       setAuthState({
         authenticated: 'Partial'
       })
-      setAuthLoading('No')
     } else {
       setAuthState({
         authenticated: 'No'
       })
-      setAuthLoading('No')
     }
-  }, [authState, setAuthState, setAuthLoading])
+  }, [authState, setAuthState])
 
 
   useEffect(() => {
+    setAuthLoading('Yes')
     onAuthStateChanged(auth, (user) => {
-      setAuthLoading('Yes')
       console.log('Auth state changed!', user)
-      
-      if (user) {
-        setUserAuthStateFun(user)
-      } else setUserAuthStateFun(null)
+      setUserAuthStateFun(user)
     })
   }, [setAuthLoading])
+  useEffect(()=>{
+    if(authState.authenticated === 'Unknown') setAuthLoading('Yes')
+    else{
+      setAuthLoading('No')
+    }
+  },[authState,setAuthLoading])
   //@ts-ignore
-  return (< AppContext.Provider value={{ authState, authLoading }}>
+  return (< AppContext.Provider value={{ authState, authLoading, setAuthState }}>
     {children}
   </ AppContext.Provider >
   );

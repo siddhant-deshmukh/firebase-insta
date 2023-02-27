@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react'
-import AppContext from '../../context/AppContext'
+import AppContext, { getAvatarUrl } from '../../context/AppContext'
 import { IUser, IUserOwn } from '../../types'
 import imageCompression from 'browser-image-compression'
 import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
@@ -20,7 +20,7 @@ interface onSucess{
 }
 const UpdateProfile = () => {
 
-  const { authState } = useContext(AppContext)
+  const { authState, setAuthState } = useContext(AppContext)
   const [uploadFormData, setUploadFormData] = useState<IUserOwn>({ ...authState.user } as IUserOwn)
   const [avatar, setAvatar] = useState<string | undefined>(authState.user?.avatarUrl)
   const [toggleChangeAvatarModal, setChangeAvatarModal] = useState<boolean>(false)
@@ -90,16 +90,34 @@ const UpdateProfile = () => {
       about : finalData.about,
       username : finalData.username,
     }).then((value)=>{
+      if(setAuthState){
+        setAuthState((prev)=>{
+          let user = prev.user as IUserOwn
+          return {...prev,user: {...user,name : finalData.name, about : finalData.about, username : finalData.username }}
+        })
+      }
       console.log("Sucessfullly made the changes!",value)
     }).catch(err=>{
       console.log("Some error has occured!",err)
     })
   }
-  const handleUploadAvatar = (avatarFile: File | null) => {
+  const handleUploadAvatar =  (avatarFile: File | null) => {
     if (!avatarFile) return;
     let currRef = ref(storage, `users/${authState.user?.uid}/avatar`);
     uploadBytes(currRef, avatarFile).then((snapshot) => {
       console.log("Uploaded file ", `users/${authState.user?.uid}/avatar`, snapshot)
+      getAvatarUrl(authState.user?.uid as string).then((url)=>{
+        if(url && setAuthState){
+          setAuthState((prev)=>{
+            let user = prev.user as IUserOwn
+            return {...prev,user:{...user,avatarUrl:url as string}}
+          })
+        }else{
+          console.error('Some error ocuured to get the url')
+        }
+      }).catch((err)=>{ 
+        console.error('Some error ocuured to get the url' , err)
+      })
     }).catch((err) => {
       console.log("Error to upload", `users/${authState.user?.uid}/avatar`, err)
     });
