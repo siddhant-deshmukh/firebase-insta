@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
-import { Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import ConfirmEmail from './components/AuthRelated/ConfirmEmail'
 import { ForgetPassword } from './components/AuthRelated/ForgetPassword'
 import Login from './components/AuthRelated/Login'
@@ -11,29 +11,33 @@ import Home from './routes/Home'
 import Post from './routes/Post'
 import UserPage from './routes/UserPage'
 import UploadFile from './components/modal/UploadFile'
-import LikedBy  from './components/modal/LikedBy'
+import LikedBy from './components/modal/LikedBy'
 import PostDisplay from './components/modal/PostDisplay'
-import { ReactQueryDevtools } from 'react-query/devtools'
 import UpdateProfile from './components/Settings/UpdateProfile'
+import { ReactQueryDevtools } from 'react-query/devtools'
+import UpperNavbar from './components/NavBar/UpperNavbar'
+import BottomNavbar from './components/NavBar/BottomNavbar'
 
 function App() {
-  const {authState,authLoading} = useContext<IAuthContext>(AppContext)
+  const { authState, authLoading } = useContext<IAuthContext>(AppContext)
   let [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation()
-  useEffect(()=>{
-    searchParams.forEach((value,key,parent)=>{
-      console.log(value,key,parent)
+  useEffect(() => {
+    searchParams.forEach((value, key, parent) => {
+      console.log(value, key, parent)
     })
     console.log(searchParams.get('modalOn'));
     console.log(searchParams.has('likedby'))
-  },[searchParams])
-  useEffect(()=>{
-    if(location.pathname==='/' || location.pathname==='/home' || authState.authenticated==='No'){
+  }, [searchParams])
+
+  useEffect(() => {
+    if (location.pathname === '/' || location.pathname === '/home' || authState.authenticated === 'No') {
       document.title = 'Instagram'
-    }else{
+    } else {
       document.title = authState.user?.name || 'Instagram'
     }
-  },[location,authState])
+  }, [location, authState])
+
   // remove the partial if want only email verified alloed and add following condition
   /**
    else if(authState.authenticated === 'Partial'){
@@ -44,38 +48,37 @@ function App() {
       )
     } 
    */
-  if(authLoading ==='Yes' || authLoading==='initial'){
-    return(<div className='w-screen relative h-screen '>
+  if (authLoading === 'Yes' || authLoading === 'initial') {
+    return (<div className='w-screen relative h-screen '>
       <div className='mx-auto absolute inset-1/3 w-fit h-fit'>
-        <img src='/insta-logo.svg' alt='loading' className='w-52'/>
+        <img src='/insta-logo.svg' alt='loading' className='w-52' />
       </div>
     </div>)
-  } else if(authState.authenticated === 'Partial'){
-    return(
+  } else if (authState.authenticated === 'Partial') {
+    return (
       <div>
         <ConfirmEmail />
       </div>
     )
-  }  else {
-    if(authState && authState.authenticated ==='Yes'){
+  } else {
+    if (authState && authState.authenticated === 'Yes') {
       return (
-        <div className={`App flex h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal'))?"overflow-y-hidden":"overflow-y-auto"}`}>
-          <aside className="w-64 fixed hidden xl:block" aria-label="Sidebar">
-            <NavBar />
-          </aside>
+        <div className={`App flex pt-12 pl-0 sm:pt-0 sm:pl-14 lg:pl-56 h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal')) ? "overflow-y-hidden" : "overflow-y-auto"}`}>
+          <NavBar />
+          <UpperNavbar />
           
           <div className={` w-screen`}>
             <Routes>
-              <Route index element={<Home/>}/> 
-              <Route path="/p/:postId" element={<Post/>}/> 
-              <Route path="/u/:userId" element={<UserPage/>}/> 
-              <Route path="/update-profile" element={<UpdateProfile />}/>
-              <Route path="*" element={<Home/>}/> 
+              <Route index element={<Home />} />
+              <Route path="/p/:postId" element={<Post />} />
+              <Route path="/u/:userId" element={<UserPage />} />
+              <Route path="/update-profile" element={<UpdateProfile />} />
+              <Route path="*" element={<Home />} />
             </Routes>
           </div>
 
           {
-            searchParams.get('createPostModal') && 
+            searchParams.get('createPostModal') &&
             <UploadFile />
           }
           {
@@ -83,21 +86,23 @@ function App() {
             <LikedBy />
           }
           {
-            searchParams.get('showPostModal')  &&
+            searchParams.get('showPostModal') &&
             <PostDisplay />
           }
           <ReactQueryDevtools initialIsOpen={false} />
+
+          <BottomNavbar />
         </div>
       )
-    }else{
-      return(
+    } else {
+      return (
         <div>
           <Routes>
-            <Route path='/login' element={<Login/>}/>
-            <Route path='/signup'  element={<SignUp/>} />
-            <Route path='/emailCheck'  element={<ConfirmEmail/>} />
-            <Route path='/forgetpassword'  element={<ForgetPassword/>} />
-            <Route path="*" element={<Authenticate/>}/> 
+            <Route path='/login' element={<Login />} />
+            <Route path='/signup' element={<SignUp />} />
+            <Route path='/emailCheck' element={<ConfirmEmail />} />
+            <Route path='/forgetpassword' element={<ForgetPassword />} />
+            <Route path="*" element={<Authenticate />} />
           </Routes>
         </div>
       )
