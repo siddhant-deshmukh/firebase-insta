@@ -9,6 +9,7 @@ import { db, storage } from '../firebase'
 import { IPost, IPostStored } from '../types'
 import { Link } from 'react-router-dom'
 import Loader from '../Loader'
+import { getPostsIdAndCacheDetails } from '../utils/post_related_functions'
 
 const Home = () => {
 
@@ -19,8 +20,6 @@ const Home = () => {
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const queryClient = useQueryClient()
   
-  
-
   const fetchPosts = async ({ pageParam = 1 }) => {
 
     const q_ = (lastPostDoc.current) ? (query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc.current), limit(postPerPage))) : (query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(postPerPage)))
@@ -122,74 +121,6 @@ const Home = () => {
     </div>
   )
 }
-export async function getPost(postId:string,queryClient: QueryClient, ownUid: string | undefined) {
-  const postSnap = await getDoc(doc(db,'posts',postId))
-  if(postSnap.exists()){
-    const postData  = postSnap.data() as IPostStored
-    await getPostsIdAndCacheDetails(postData,postId,queryClient,ownUid)
-    const post: IPost | undefined = queryClient.getQueryData(['post', postId])
-    return post
-  } else {
-    return undefined
-  }
-}
-export async function getPostsIdAndCacheDetails(postData: IPostStored, postId: string, queryClient: QueryClient, ownUid: string | undefined) {
-  try {
-    // checking post in cache
-    const checkPost = queryClient.getQueryData(['post', postId]) as IPost | undefined
-    if (checkPost) return postId
 
-    // if not found getting the post
-    let urls: Promise<string>[] = []
-    for (let i = 0; i < postData.numMedia; i++) {
-      urls[i] = getDownloadURL(ref(storage, `posts/${postData.authorId}/${postId}/${i}`))
-    }
-    let imgUrlsPromise = Promise.all(urls)      // to get image urls of post
-    // to get if user has liked it random if not
-    let checkLikedPromise = async () => {
-      if (ownUid) return await getDoc(doc(collection(db, `posts/${postId}/likedby`), ownUid))
-      else return undefined
-    }
 
-    const [imgUrls, checkLiked] = await Promise.all([imgUrlsPromise, checkLikedPromise()])
-    const finalDoc: IPost = {
-      ...postData,
-      imgUrls,
-      hasLiked: (checkLiked) ? checkLiked.exists() : (Math.random() < 0.5),
-      postId
-    }
-    console.log("Updated doc!", finalDoc)
-    queryClient.setQueryData(['post', postId], finalDoc,{
-      updatedAt: Infinity,
-    })
-    return postId
-  } catch (err) {
-    console.error("While getting post",postId,err)
-    return undefined
-  }
-}
-/**
- 
-{
-    "authorId": "2dPrqpCfgHXUHjOYgRR4tn4xOB23",
-    "createdAt": {
-        "seconds": 1675020755,
-        "nanoseconds": 884000000
-    },
-    "numMedia": 2,
-    "desc": "Meow",
-    "imgUrl": [
-        "https://firebasestorage.googleapis.com/v0/b/instagram-01-c1cb5.appspot.com/o/posts%2F2dPrqpCfgHXUHjOYgRR4tn4xOB23%2FTfhApRzpbFzSPKAEgYMg%2F0?alt=media&token=194d1610-09b0-4fa8-84df-f213c8e22528",
-        "https://firebasestorage.googleapis.com/v0/b/instagram-01-c1cb5.appspot.com/o/posts%2F2dPrqpCfgHXUHjOYgRR4tn4xOB23%2FTfhApRzpbFzSPKAEgYMg%2F0?alt=media&token=194d1610-09b0-4fa8-84df-f213c8e22528"
-    ],
-    "user": {
-        "authComplete": false,
-        "name": "2019bec072",
-        "numPosts": 5,
-        "avatarUrl": "",
-        "username": "2019b87345",
-        "about": ""
-    }
-}
- */
 export default Home

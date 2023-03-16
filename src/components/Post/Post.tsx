@@ -1,38 +1,16 @@
-import { collection, deleteDoc, doc, getDoc, query, setDoc, Timestamp } from 'firebase/firestore';
-import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { InfiniteData, QueryClient, useQueryClient } from 'react-query';
-import { QueryFilters } from 'react-query/types/core/utils';
+import { collection, deleteDoc, doc, setDoc, Timestamp } from 'firebase/firestore';
+import React, {  useContext, useEffect, useState } from 'react'
+import {  QueryClient, useQueryClient } from 'react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import AppContext, { getUserData } from '../../context/AppContext';
 import { db } from '../../firebase';
-import { getPost } from '../../routes/Home';
+
 import { IPost, IUserSnippet } from '../../types'
+import { getPost } from '../../utils/post_related_functions';
 import UserSnippetCard from '../UserSnippetCard';
 
 
-export const updateLikedState = async (post: IPost | null, setPost: React.Dispatch<React.SetStateAction<IPost | null>>, queryClient: QueryClient, userId: string | undefined) => {
-  if (!post) return;
-  if (post.hasLiked) {
-    deleteDoc(doc(collection(db, `posts/${post.postId}/likedby`), userId))
-      .then(() => {
-        const newPost = { ...post, hasLiked: false, numLikes: (post.numLikes || 1) - 1 }
-        queryClient.setQueryData(['post', post.postId], newPost)
-        setPost(newPost)
-      }).catch((err) => {
-        console.log("Some error occured", err)
-      })
-  } else {
-    setDoc(doc(collection(db, `posts/${post.postId}/likedby`), userId), {
-      createdAt: Timestamp.fromDate(new Date())
-    }).then((onFulfield) => {
-      const newPost = { ...post, hasLiked: true, numLikes: (post.numLikes || 0) + 1 }
-      queryClient.setQueryData(['post', post.postId], newPost)
-      setPost(newPost)
-    }).catch((err) => {
-      console.log("Something goes wrong to change liked state", err)
-    })
-  }
-}
+
 
 export const Post = ({ postId }: { postId: string }) => {
 

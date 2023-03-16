@@ -7,8 +7,8 @@ import PostTitleCard from '../components/Post/PostTitleCard';
 import AppContext, { getUserData } from '../context/AppContext';
 import { db } from '../firebase';
 import Loader from '../Loader';
+import { getPostsIdAndCacheDetails } from '../utils/post_related_functions';
 import { IPost, IPostStored, IUserSnippet } from '../types';
-import { getPostsIdAndCacheDetails } from './Home';
 
 export const changeUserFollowState = (userInfo: IUserSnippet | null, setUserInfo: React.Dispatch<React.SetStateAction<IUserSnippet | null | undefined>>, queryClient: QueryClient, userId: string | undefined) => {
   //console.log("Here!!!!!!!!!!11", userInfo)

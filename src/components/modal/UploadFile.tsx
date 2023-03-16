@@ -8,27 +8,22 @@ import imageCompression from 'browser-image-compression'
 import { InfiniteData, useMutation, useQueryClient } from 'react-query';
 import { IPost, IPostStored } from '../../types';
 
-const addPost = async (body:any) =>{
-  return fetch('');
-}
 
 const UploadFile = () => {
 
   let [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient()
-  
-  const [mediaFiles, setMediaFile] = useState< (Blob | null)[]>([]);
+
+  const [mediaFiles, setMediaFile] = useState<(Blob | null)[]>([]);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined)
   const [sucessMsg, setSucessMsg] = useState<string | undefined>(undefined)
   const [inProgress, setProgress] = useState<boolean>(false)
   const [pageNum, setPageNum] = useState<1 | 2>(1)
 
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   const [descPost, setDescPost] = useState<string>("");
   const { authState } = useContext(AppContext)
-  const dropRef = useRef(null)
 
   const closeModal = useCallback(() => {
     setSearchParams((prev) => {
@@ -38,13 +33,6 @@ const UploadFile = () => {
     })
   }, [setSearchParams])
 
-  // const mutation = useMutation({
-  //   mutationFn: undefined,
-  //   onSuccess: (postId : string) => {
-      
-  //   },
-  // })
-
   const uploadPost = useCallback(async () => {
     try {
       if (authState.user && authState.user?.numPosts && authState.user?.numPosts >= 5) {
@@ -53,7 +41,7 @@ const UploadFile = () => {
       }
       setProgress(true)
       console.log("uploading post", mediaFiles)
-      const post_ : IPostStored = {
+      const post_: IPostStored = {
         authorId: authState.user?.uid,
         createdAt: Timestamp.fromDate(new Date()),
         numMedia: mediaFiles.length,
@@ -64,14 +52,14 @@ const UploadFile = () => {
       console.log("Uploading", post_)
       const uDoc = await addDoc(collection(db, 'posts'), post_)
       const postId = uDoc.id
-      
+
       console.log("---------Upload post-------")
       console.log("---------Upload post-------", postId, uDoc)
 
 
       const mediaFiles_ = mediaFiles.slice()
       mediaFiles_.forEach((media, index) => {
-        if(!media) return 
+        if (!media) return
         let currRef = ref(storage, `posts/${authState.user?.uid}/${postId}/${index}`);
         uploadBytes(currRef, media).then((snapshot) => {
           console.log("Uploaded file ", `posts/${authState.user?.uid}/${postId}/${index}`, snapshot, media, `posts/${authState.user?.uid}/${postId}/${index}`)
@@ -80,7 +68,7 @@ const UploadFile = () => {
         });
       })
       // mutation.mutate(postId)
-      console.log("Here we go to add postFeed",postId)
+      console.log("Here we go to add postFeed", postId)
       // queryClient.setQueryData(['postFeed'], (oldData : any) => ({
       //   pages: [{data:[postId],nextPage:1,isLast:false}, ...oldData.pages],
       //   pageParams: oldData.pageParams,
@@ -95,45 +83,10 @@ const UploadFile = () => {
 
   }, [mediaFiles, descPost])
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const { files } = e.dataTransfer;
-
-    if (files && files.length) {
-      console.log({ files });
-      if (files.length > 4) {
-        setErrorMsg('can select up to 4 files only')
-        return
-      }
-      let cFiles: (Blob | null)[] = []
-      for (let ii = 0; ii < files.length; ii++) {
-        let currentFile = files.item(ii)
-        if (currentFile) cFiles[ii] = await imageCompression(currentFile, { maxSizeMB: 2 })
-        //@ts-ignore
-        if (cFiles[ii] !== null && cFiles[ii].size > 2 * 1024 * 1024) {
-          setErrorMsg('maximum size limit is 2MB')
-          return
-        }
-        console.log('cFile', ii, cFiles[ii])
-      }
-      setMediaFile((prev) => {
-        const latest = [...prev, ...cFiles];
-        latest.slice(0, 5)
-        return latest
-      })
-    }
-  };
-
   useEffect(() => {
     let any = true;
     const urls = mediaFiles.map((file) => {
-      if(!file) return ''
+      if (!file) return ''
       if (!file) setErrorMsg('some error occured while getting files')
       if (any) any = file.size < 2 * 1024 * 1024
       return URL.createObjectURL(file)
@@ -149,18 +102,7 @@ const UploadFile = () => {
     })
   }, [mediaFiles, setMediaUrls])
 
-  useEffect(() => {
-    if (dropRef.current) {
-      //@ts-ignore
-      dropRef.current.addEventListener('dragover', handleDragOver); dropRef.current.addEventListener('drop', handleDrop);
-    }
-    return () => {
-      if (dropRef.current) {
-        //@ts-ignore
-        dropRef.current.removeEventListener('dragover', handleDragOver); dropRef.current.removeEventListener('drop', handleDrop);
-      }
-    };
-  }, [])
+
 
   return (
     <div>
@@ -220,64 +162,14 @@ const UploadFile = () => {
             <div className="modal-body relative p-0.5 overflow-y-auto h-full w-full">
 
               {/*  When no media files selected */}
-              <div
-                ref={dropRef}
-                className="w-96  h-[28rem] md:w-[40rem] md:h-[35rem]"
-                hidden={!(!mediaFiles || mediaFiles.length === 0)}
-              >
-                <label
-                  className="flex justify-center w-full h-full px-4 transition bg-white rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none">
-                  <span className="flex items-center space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span className="font-medium text-gray-600">
-                      Drop files to Attach, or
-                      <span className="text-blue-600 underline">browse</span>
-                    </span>
-                  </span>
-                  <input type="file" accept=".jpg, .jpeg, .png .gif" multiple name="file_upload" className="hidden" onChange={(event) => {
-                    console.log('Here 1234', event.target.files)
-                  }} />
-                </label>
-              </div>
+              {
+                (!mediaFiles || mediaFiles.length === 0) &&
+                <UploadPostSelectFile mediaFiles={mediaFiles} setMediaFile={setMediaFile}  setErrorMsg={setErrorMsg} />
+              }
 
               {
-                (mediaFiles && mediaFiles.length > 0) && pageNum === 1 && <div
-                  className='h-fit w-fit'
-                >
-                  <div className="flex items-center relative bg-white w-fit max-w-sm sm:max-w-xl h-fit  max-h-[32rem]" style={{ minHeight: '300px', minWidth: '400px' }}>
-                    <img src={mediaUrls[currentIndex]} className='max-w-full mx-auto h-fit  max-h-[32rem]' />
-                    <button
-                      className='absolute top-3 h-fit right-2  px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setMediaUrls(mediaUrls.slice(0, currentIndex).concat(mediaUrls.slice(currentIndex + 1)))
-                        setMediaFile(mediaFiles.slice(0, currentIndex).concat(mediaFiles.slice(currentIndex + 1)))
-                        setCurrentIndex((currentIndex - 1 >= 0) ? currentIndex - 1 : 0)
-                      }}
-                    >
-                      X
-                    </button>
-                    <button
-                      className='absolute inset-y-1/2 h-fit left-2  px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
-                      onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev - 1) }}
-                      hidden={(currentIndex < 1) ? true : false}
-                    >
-                      {'<'}
-                    </button>
-                    <button
-                      className='absolute inset-y-1/2 h-fit right-2 px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
-                      onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev + 1) }}
-                      hidden={(currentIndex > mediaFiles.length - 2) ? true : false}
-                    >
-                      {'>'}
-                    </button>
-                  </div>
-
-                </div>
+                (mediaFiles && mediaFiles.length > 0) && pageNum === 1 &&
+                <PostPreview mediaFiles={mediaFiles} mediaUrls={mediaUrls} setMediaUrls={setMediaUrls} setMediaFile={setMediaFile} />
               }
               {
                 (mediaFiles && mediaFiles.length > 0) && pageNum === 2 &&
@@ -342,5 +234,130 @@ const UploadFile = () => {
   )
 }
 
+function PostPreview({ mediaFiles, mediaUrls, setMediaUrls, setMediaFile }: {
+  mediaFiles: (Blob | null)[],
+  setMediaUrls: React.Dispatch<React.SetStateAction<string[]>>,
+  mediaUrls: string[],
+  setMediaFile: React.Dispatch<React.SetStateAction<(Blob | null)[]>>
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+
+  return (
+    <div
+      className='h-fit w-fit'
+    >
+      <div className="flex items-center relative bg-white w-fit max-w-sm sm:max-w-xl h-fit  max-h-[32rem]" style={{ minHeight: '300px', minWidth: '400px' }}>
+        <img src={mediaUrls[currentIndex]} className='max-w-full mx-auto h-fit  max-h-[32rem]' />
+        <button
+          className='absolute top-3 h-fit right-2  px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
+          onClick={(event) => {
+            event.preventDefault();
+            setMediaUrls(mediaUrls.slice(0, currentIndex).concat(mediaUrls.slice(currentIndex + 1)))
+            setMediaFile(mediaFiles.slice(0, currentIndex).concat(mediaFiles.slice(currentIndex + 1)))
+            setCurrentIndex((currentIndex - 1 >= 0) ? currentIndex - 1 : 0)
+          }}
+        >
+          X
+        </button>
+        <button
+          className='absolute inset-y-1/2 h-fit left-2  px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
+          onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev - 1) }}
+          hidden={(currentIndex < 1) ? true : false}
+        >
+          {'<'}
+        </button>
+        <button
+          className='absolute inset-y-1/2 h-fit right-2 px-2 w-fit rounded-full bg-white opacity-80 font-medium hover:bg-gray-200'
+          onClick={(event) => { event.preventDefault(); setCurrentIndex((prev) => prev + 1) }}
+          hidden={(currentIndex > mediaFiles.length - 2) ? true : false}
+        >
+          {'>'}
+        </button>
+      </div>
+
+    </div>
+  )
+}
+function UploadPostSelectFile({ mediaFiles, setErrorMsg, setMediaFile }: {
+  mediaFiles: (Blob | null)[],
+  setErrorMsg: React.Dispatch<React.SetStateAction<string | undefined>>,
+  setMediaFile: React.Dispatch<React.SetStateAction<(Blob | null)[]>>
+
+}) {
+  const dropRef = useRef(null)
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { files } = e.dataTransfer;
+
+    if (files && files.length) {
+      console.log({ files });
+      if (files.length > 4) {
+        setErrorMsg('can select up to 4 files only')
+        return
+      }
+      let cFiles: (Blob | null)[] = []
+      for (let ii = 0; ii < files.length; ii++) {
+        let currentFile = files.item(ii)
+        if (currentFile) cFiles[ii] = await imageCompression(currentFile, { maxSizeMB: 2 })
+        //@ts-ignore
+        if (cFiles[ii] !== null && cFiles[ii].size > 2 * 1024 * 1024) {
+          setErrorMsg('maximum size limit is 2MB')
+          return
+        }
+        console.log('cFile', ii, cFiles[ii])
+      }
+      setMediaFile((prev) => {
+        const latest = [...prev, ...cFiles];
+        latest.slice(0, 5)
+        return latest
+      })
+    }
+  };
+
+  useEffect(() => {
+    if (dropRef.current) {
+      //@ts-ignore
+      dropRef.current.addEventListener('dragover', handleDragOver); dropRef.current.addEventListener('drop', handleDrop);
+    }
+    return () => {
+      if (dropRef.current) {
+        //@ts-ignore
+        dropRef.current.removeEventListener('dragover', handleDragOver); dropRef.current.removeEventListener('drop', handleDrop);
+      }
+    };
+  }, [])
+  return (
+    <div
+      ref={dropRef}
+      className="w-96  h-[28rem] md:w-[40rem] md:h-[35rem]"
+      hidden={!(!mediaFiles || mediaFiles.length === 0)}
+    >
+      <label
+        className="flex justify-center w-full h-full px-4 transition bg-white rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none">
+        <span className="flex items-center space-x-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <span className="font-medium text-gray-600">
+            Drop files to Attach, or
+            <span className="text-blue-600 underline">browse</span>
+          </span>
+        </span>
+        <input type="file" accept=".jpg, .jpeg, .png .gif" multiple name="file_upload" className="hidden" onChange={(event) => {
+          console.log('Here 1234', event.target.files)
+        }} />
+      </label>
+    </div>
+  )
+}
 
 export default UploadFile
