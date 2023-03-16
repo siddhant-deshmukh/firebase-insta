@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface IUserStored {
     name : string,
     about : string,
@@ -26,9 +28,9 @@ export interface IPostContent{
     refrance : '',
 }
 export interface IPostStored{
-    authorId : string,
+    authorId? : string,
     desc? : string,
-    createdAt : Date,
+    createdAt : Timestamp,
     numMedia : number,
     numLikes? : number,
     numComments?:number,

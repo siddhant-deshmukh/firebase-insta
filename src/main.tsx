@@ -6,7 +6,14 @@ import {BrowserRouter, RouterProvider} from 'react-router-dom'
 import {AppProvider} from './context/AppContext'
 import {QueryClient,QueryClientProvider} from 'react-query'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+    },
+  },
+})
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   
    <div className='dark'>

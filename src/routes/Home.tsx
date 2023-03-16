@@ -10,40 +10,6 @@ import { IPost, IPostStored } from '../types'
 import { Link } from 'react-router-dom'
 import Loader from '../Loader'
 
-export async function getPostsIdAndCacheDetails(postData: IPostStored, postId: string, queryClient: QueryClient, ownUid: string | undefined) {
-  try {
-    // checking post in cache
-    const checkPost = queryClient.getQueryData(['post', postId]) as IPost | undefined
-    if (checkPost) return postId
-
-    // if not found getting the post
-    let urls: Promise<string>[] = []
-    for (let i = 0; i < postData.numMedia; i++) {
-      urls[i] = getDownloadURL(ref(storage, `posts/${postData.authorId}/${postId}/${i}`))
-    }
-    let imgUrlsPromise = Promise.all(urls)      // to get image urls of post
-    // to get if user has liked it random if not
-    let checkLikedPromise = async () => {
-      if (ownUid) return await getDoc(doc(collection(db, `posts/${postId}/likedby`), ownUid))
-      else return undefined
-    }
-
-    const [imgUrls, checkLiked] = await Promise.all([imgUrlsPromise, checkLikedPromise()])
-    const finalDoc: IPost = {
-      ...postData,
-      imgUrls,
-      hasLiked: (checkLiked) ? checkLiked.exists() : (Math.random() < 0.5),
-      postId
-    }
-    console.log("Updated doc!", finalDoc)
-    queryClient.setQueryData(['post', postId], finalDoc)
-    return postId
-  } catch (err) {
-    console.error("While getting post",postId,err)
-    return undefined
-  }
-}
-
 const Home = () => {
 
   // const [postFeed,setPostFeed] = useState<IPost[]>([])
@@ -52,15 +18,8 @@ const Home = () => {
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const queryClient = useQueryClient()
-
-  const getPostFromCache = (postId: string) => {
-    const post: IPost | undefined = queryClient.getQueryData(['post', postId])
-    if (post) {
-      return post
-    } else {
-      return
-    }
-  }
+  
+  
 
   const fetchPosts = async ({ pageParam = 1 }) => {
 
@@ -90,7 +49,8 @@ const Home = () => {
     data: postFeed,
     isFetching,
     fetchNextPage,
-    hasNextPage
+    hasNextPage,
+    refetch
   } = useInfiniteQuery('postFeed', fetchPosts, {
     getNextPageParam: (lastPage, pages) => {
       if (lastPage.isLast) return undefined
@@ -125,9 +85,11 @@ const Home = () => {
       if (loader.current) observer.unobserve(loader.current);
     }
   }, [loader, observerCallback])
+
   useEffect(()=>{
     if(error) console.error('Something is wrong with useInfiniteQuery',error)
   },[error])
+  
   return (
     <div className='overflow-y-hidden mx-auto w-fit'>
       {isLoading ? (
@@ -145,17 +107,12 @@ const Home = () => {
         </div>
       ) : (
         //@ts-ignore
-        <div className='py-10 ' style={{ maxWidth: '500px' }}>
+        <div className='py-2 flex flex-col space-y-2' style={{ maxWidth: '450px' }}>
           {
             postFeed && postFeed.pages.map((page) => {
               return page.data.map((postId) => {
                 if(!postId) return <div hidden key={Math.random()}></div>
-                let post = getPostFromCache(postId)
-                if (post) {
-                  return <div key={postId}>
-                    <Post post={post} />
-                  </div>
-                }
+                return <Post key={postId} postId={postId} />
               })
             })
           }
@@ -164,6 +121,52 @@ const Home = () => {
       <div ref={loader}></div>
     </div>
   )
+}
+export async function getPost(postId:string,queryClient: QueryClient, ownUid: string | undefined) {
+  const postSnap = await getDoc(doc(db,'posts',postId))
+  if(postSnap.exists()){
+    const postData  = postSnap.data() as IPostStored
+    await getPostsIdAndCacheDetails(postData,postId,queryClient,ownUid)
+    const post: IPost | undefined = queryClient.getQueryData(['post', postId])
+    return post
+  } else {
+    return undefined
+  }
+}
+export async function getPostsIdAndCacheDetails(postData: IPostStored, postId: string, queryClient: QueryClient, ownUid: string | undefined) {
+  try {
+    // checking post in cache
+    const checkPost = queryClient.getQueryData(['post', postId]) as IPost | undefined
+    if (checkPost) return postId
+
+    // if not found getting the post
+    let urls: Promise<string>[] = []
+    for (let i = 0; i < postData.numMedia; i++) {
+      urls[i] = getDownloadURL(ref(storage, `posts/${postData.authorId}/${postId}/${i}`))
+    }
+    let imgUrlsPromise = Promise.all(urls)      // to get image urls of post
+    // to get if user has liked it random if not
+    let checkLikedPromise = async () => {
+      if (ownUid) return await getDoc(doc(collection(db, `posts/${postId}/likedby`), ownUid))
+      else return undefined
+    }
+
+    const [imgUrls, checkLiked] = await Promise.all([imgUrlsPromise, checkLikedPromise()])
+    const finalDoc: IPost = {
+      ...postData,
+      imgUrls,
+      hasLiked: (checkLiked) ? checkLiked.exists() : (Math.random() < 0.5),
+      postId
+    }
+    console.log("Updated doc!", finalDoc)
+    queryClient.setQueryData(['post', postId], finalDoc,{
+      updatedAt: Infinity,
+    })
+    return postId
+  } catch (err) {
+    console.error("While getting post",postId,err)
+    return undefined
+  }
 }
 /**
  

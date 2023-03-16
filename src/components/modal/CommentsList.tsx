@@ -72,18 +72,18 @@ const CommentsList = ({ postId, endUserId }: { postId: string, endUserId: string
     fetchMore()
   }, [])
   return (
-    <div className='w-full h-fit' >
+    <div className='w-full h-fit max-w-sm' >
       {
         commentsList &&
         commentsList.map((comment) => {
-          return <div key={comment.commentId}>
+          return <div key={comment.commentId} className="max-w-sm">
             <CommentCard comment={comment} />
           </div>
         })
       }
       <div className='w-full flex place-content-center h-fit' hidden={newCommentsLoading}>
         <button
-          className='w-fit h-fit mx-auto bg-slate-100'
+          className='w-fit h-fit mx-auto '
           onClick={(event) => { event.preventDefault(); fetchMore() }}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />

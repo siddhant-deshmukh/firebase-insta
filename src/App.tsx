@@ -51,7 +51,16 @@ function App() {
   if (authLoading === 'Yes' || authLoading === 'initial') {
     return (<div className='w-screen relative h-screen '>
       <div className='mx-auto absolute inset-1/3 w-fit h-fit'>
-        <img src='/insta-logo.svg' alt='loading' className='w-52' />
+        <img src='/insta-logo.svg' alt='loading' className='w-52 mx-auto' />
+        <div className=" w-fit mx-auto">
+          <div className="bg-clip-text text-2xl font-extrabold w-fit mb-10 mx-auto text-transparent bg-gradient-to-r from-red-500 to-yellow-300">
+            Loading ...
+          </div>
+          <div className='font-medium text-lg'>
+            <span>Created by</span> <br/>
+            <span>Siddhant Deshmukh</span>
+          </div>
+        </div>
       </div>
     </div>)
   } else if (authState.authenticated === 'Partial') {
@@ -63,10 +72,10 @@ function App() {
   } else {
     if (authState && authState.authenticated === 'Yes') {
       return (
-        <div className={`App flex pt-12 pl-0 sm:pt-0 sm:pl-14 lg:pl-56 h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal')) ? "overflow-y-hidden" : "overflow-y-auto"}`}>
+        <div className={`App flex pt-12 pl-0 sm:pt-0 sm:pl-14 lg:pl-56 xl:pl-0 h-screen w-screen ${(searchParams.get('createPostModal') || searchParams.get('likedByModal') || searchParams.get('showPostModal')) ? "overflow-y-hidden" : "overflow-y-auto"}`}>
           <NavBar />
           <UpperNavbar />
-          
+
           <div className={` w-screen`}>
             <Routes>
               <Route index element={<Home />} />
