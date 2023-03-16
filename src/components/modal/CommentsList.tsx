@@ -1,9 +1,10 @@
 import { collection, doc, DocumentData, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, startAfter, where } from 'firebase/firestore';
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from 'react-query';
-import AppContext, { getAvatarUrl, getUserData } from '../../context/AppContext';
+import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
 import { IComment, ICommentStored, IUserSnippet, IUserStored } from '../../types';
+import { getUserData } from '../../utils/user_related_functions';
 import { CommentCard } from './CommentCard';
 
 const CommentsList = ({ postId, endUserId }: { postId: string, endUserId: string }) => {

@@ -1,10 +1,11 @@
 import React, { useContext, useState } from 'react'
-import AppContext, { getAvatarUrl } from '../../context/AppContext'
+import AppContext from '../../context/AppContext'
 import { IUser, IUserOwn } from '../../types'
 import imageCompression from 'browser-image-compression'
 import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db, storage } from '../../firebase'
 import { ref, uploadBytes } from 'firebase/storage'
+import { getAvatarUrl } from '../../utils/user_related_functions'
 
 interface EditUserErrors{
   name?:string,

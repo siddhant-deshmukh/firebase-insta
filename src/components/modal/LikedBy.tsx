@@ -2,9 +2,10 @@ import { collection, getDoc, getDocs, limit, orderBy, query, doc, QueryDocumentS
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
-import AppContext, {  getUserSnippetsFromDocsSnapShot } from '../../context/AppContext';
+import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
 import { IUserSnippet, IUserStored } from '../../types';
+import { getUserSnippetsFromDocsSnapShot } from '../../utils/user_related_functions';
 import UserSnippetCard from '../UserSnippetCard';
 
 export const LikedBy = () => {
