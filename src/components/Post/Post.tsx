@@ -6,7 +6,7 @@ import AppContext from '../../context/AppContext';
 import { db } from '../../firebase';
 
 import { IPost, IUserSnippet } from '../../types'
-import { getPost } from '../../utils/post_related_functions';
+import { getPost, updateLikedState } from '../../utils/post_related_functions';
 import { getUserData } from '../../utils/user_related_functions';
 import UserSnippetCard from '../UserSnippetCard';
 

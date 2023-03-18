@@ -21,14 +21,14 @@ service cloud.firestore {
     match /posts/{postId}{
     	allow create : if request.auth.token.email_verified 
         && request.resource.data.authorId == request.auth.uid 
-      	&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.numPosts < 10
+      	&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.numPosts < 5
         && (request.resource.data.keys().hasOnly(
         ['createdAt', 'authorId','numLikes', 'numComments', 'desc','numMedia']))
         && request.resource.data.createdAt is timestamp
         && request.resource.data.numLikes == 0
         && request.resource.data.numComments == 0
-        && request.resource.data.numMedia < 5
-        && request.resource.data.desc.size() < 1000;
+        && request.resource.data.desc.size() < 1000
+        && request.resource.data.numMedia < 5;
       allow delete : if request.auth.token.email_verified 
         && resource.data.authorId == request.auth.uid;
     }

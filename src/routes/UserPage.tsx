@@ -4,11 +4,12 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { QueryClient, useInfiniteQuery, useQueryClient } from 'react-query';
 import { Link, useParams } from 'react-router-dom'
 import PostTitleCard from '../components/Post/PostTitleCard';
-import AppContext, { getUserData } from '../context/AppContext';
+import AppContext from '../context/AppContext';
 import { db } from '../firebase';
-import Loader from '../Loader';
+import Loader from '../components/Loader';
 import { getPostsIdAndCacheDetails } from '../utils/post_related_functions';
 import { IPost, IPostStored, IUserSnippet } from '../types';
+import { getUserData } from '../utils/user_related_functions';
 
 export const changeUserFollowState = (userInfo: IUserSnippet | null, setUserInfo: React.Dispatch<React.SetStateAction<IUserSnippet | null | undefined>>, queryClient: QueryClient, userId: string | undefined) => {
   //console.log("Here!!!!!!!!!!11", userInfo)

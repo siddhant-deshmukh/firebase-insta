@@ -8,24 +8,36 @@ import AppContext from '../context/AppContext'
 import { db, storage } from '../firebase'
 import { IPost, IPostStored } from '../types'
 import { Link } from 'react-router-dom'
-import Loader from '../Loader'
+import Loader from '../components/Loader'
 import { getPostsIdAndCacheDetails } from '../utils/post_related_functions'
 
 const Home = () => {
 
-  // const [postFeed,setPostFeed] = useState<IPost[]>([])
-  const { authState } = useContext(AppContext)
-  const postPerPage = 3
+  const { authState, postFeed, setPostFeed } = useContext(AppContext)
+
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setLoading] = useState<boolean>(false)
+  const [isFetching, setFetching] = useState<boolean | null>(null)
+  const [isLast, setIsLast] = useState<boolean>(false)
+
+  const postPerPage = 4
   const firstPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const lastPostDoc = useRef<QueryDocumentSnapshot<DocumentData> | null>(null)
   const queryClient = useQueryClient()
   
-  const fetchPosts = async ({ pageParam = 1 }) => {
 
+
+  const fetchNextPage = useCallback(async () => {
+    if(isLast){
+      console.log("Is last!!!!!!")
+      return;
+    }
+    console.log("Here to fetch next page but .....")
     const q_ = (lastPostDoc.current) ? (query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc.current), limit(postPerPage))) : (query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(postPerPage)))
     const postFeedSnapshots_ = await getDocs(q_)
     if (!firstPostDoc.current) firstPostDoc.current = postFeedSnapshots_.docs[0]
     lastPostDoc.current = postFeedSnapshots_.docs[postFeedSnapshots_.docs.length - 1]
+
     const promises = postFeedSnapshots_.docs.map(async (doc) => {
 
       const checkPostInCache = queryClient.getQueriesData(['post', doc.id])
@@ -37,87 +49,95 @@ const Home = () => {
     })
     const data = await Promise.all(promises)
 
-    console.log("data for page", pageParam, ' :  ', data)
+    console.log("data for page", ' :  ', data)
+    if(data.length < postPerPage || data[0]===postFeed[0]){
+      console.log('----------------         lessssssssssss      -----------------------')
+      setIsLast(true)
+    }
+    //@ts-ignore
+    setPostFeed((prev) => {
+      return [...prev,...data]
+    })
+  }, [postFeed])
 
-    return { data, nextPage: pageParam + 1, isLast: (postFeedSnapshots_.size < postPerPage) }
-  }
-  const {
-    isLoading,
-    isError,
-    error,
-    data: postFeed,
-    isFetching,
-    fetchNextPage,
-    hasNextPage,
-    refetch
-  } = useInfiniteQuery('postFeed', fetchPosts, {
-    getNextPageParam: (lastPage, pages) => {
-      if (lastPage.isLast) return undefined
-      return lastPage.nextPage + 1
-    },
-    staleTime: Infinity,
-
-  })
-
-  // useEffect(()=>{
-  //   //refreshPosts()
-
-  // },[])
-  const loader = useRef(null)
+  const load_more = useRef(null)
   const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0]
-    if (target.isIntersecting && !isFetching) {
-      console.log("Is intersection!", isFetching, hasNextPage)
-      fetchNextPage()
+    if(isLast) return;
+    console.log("Is intersection!", isFetching)
+    if (target.isIntersecting && (isFetching === null || isFetching === false) ) {
+      setFetching(true)
     }
-  }, [loader, isFetching, fetchNextPage, hasNextPage, isLoading])
+  }, [load_more, isFetching, fetchNextPage, isLoading])
+
   useEffect(() => {
     const observer = new IntersectionObserver(observerCallback, {
       root: null,
       rootMargin: '0px',
       threshold: 0.25
     })
-    //@ts-ignore
-    if (loader && loader.current) observer.observe(loader.current);
+    console.log("load_more",load_more.current)
+    if (load_more && load_more.current) observer.observe(load_more.current);
     return () => {
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
       //@ts-ignore
-      if (loader.current) observer.unobserve(loader.current);
+      if (load_more.current) observer.unobserve(load_more.current);
     }
-  }, [loader, observerCallback])
+  }, [])
 
-  useEffect(()=>{
-    if(error) console.error('Something is wrong with useInfiniteQuery',error)
-  },[error])
-  
+  useEffect(() => {
+    console.log("Infinite loop!!",isFetching,postFeed)
+    if(isFetching){
+      fetchNextPage()
+        .catch((error) => {
+          setError(error)
+        })
+        .finally(() => {
+          setTimeout(function() {
+            setFetching(false)
+          }, 1000);
+        })
+    }
+  }, [isFetching])
+
+  useEffect(() => {
+    if (error) console.error('Something is wrong with useInfiniteQuery', error)
+  }, [error])
+
   return (
-    <div className='overflow-y-hidden mx-auto w-fit'>
+    <div className='mx-auto w-fit'>
+      {
+        error &&
+        <div className="flex items-center py-1 px-2 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+          <span className="font-medium w-full">{error}</span>
+          <button
+            onClick={(event) => { event.preventDefault(); setError(null) }}
+            className='w-fit rounded-full px-1.5 py-0.5 hover:bg-red-300 '>
+            X
+          </button>
+        </div>
+      }
       {isLoading ? (
         <Loader />
-      ) : isError ? (
-        <div className="w-96 h-fit bg-red-100" style={{ maxWidth: '60%' }}>
-          <img src="https://i.imgur.com/qIufhof.png" className='w-full aspect-square' />
-
-          <h1 className='w-full py-4 text-xl font-bold text-center'>
-            Internal server error
-          </h1> 
-          <p className="text-blue-500 underline">
-            try to <Link to={'/'}>Refresh</Link>
-          </p>
-        </div>
       ) : (
         //@ts-ignore
         <div className='py-2 flex flex-col space-y-2' style={{ maxWidth: '450px' }}>
           {
-            postFeed && postFeed.pages.map((page) => {
-              return page.data.map((postId) => {
-                if(!postId) return <div hidden key={Math.random()}></div>
-                return <Post key={postId} postId={postId} />
-              })
+            postFeed && postFeed.map((postId) => {
+              if (!postId) return <div hidden key={Math.random()}></div>
+              return <Post key={postId} postId={postId} />
             })
           }
         </div>
       )}
-      <div ref={loader}></div>
+      {
+        isFetching &&
+        <div className='w-full'>
+          <Loader />
+        </div>
+      }
+      {!isLast && <div className='mb-3' ref={load_more}></div>}
+      {/* <div>.</div> */}
     </div>
   )
 }

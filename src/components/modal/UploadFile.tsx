@@ -12,7 +12,6 @@ import { IPost, IPostStored } from '../../types';
 const UploadFile = () => {
 
   let [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient()
 
   const [mediaFiles, setMediaFile] = useState<(Blob | null)[]>([]);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
@@ -21,9 +20,10 @@ const UploadFile = () => {
   const [inProgress, setProgress] = useState<boolean>(false)
   const [pageNum, setPageNum] = useState<1 | 2>(1)
 
+  const queryClient = useQueryClient()
 
   const [descPost, setDescPost] = useState<string>("");
-  const { authState } = useContext(AppContext)
+  const { authState, setPostFeed } = useContext(AppContext)
 
   const closeModal = useCallback(() => {
     setSearchParams((prev) => {
@@ -58,14 +58,22 @@ const UploadFile = () => {
 
 
       const mediaFiles_ = mediaFiles.slice()
+      let err_ = false
       mediaFiles_.forEach((media, index) => {
         if (!media) return
         let currRef = ref(storage, `posts/${authState.user?.uid}/${postId}/${index}`);
-        uploadBytes(currRef, media).then((snapshot) => {
+        try{
+          let snapshot = uploadBytes(currRef, media)
           console.log("Uploaded file ", `posts/${authState.user?.uid}/${postId}/${index}`, snapshot, media, `posts/${authState.user?.uid}/${postId}/${index}`)
-        }).catch((err) => {
+        }catch(err){
+          err_ = true
           console.log("Error to upload", `posts/${authState.user?.uid}/${postId}/${index}`, err, media, `posts/${authState.user?.uid}/${postId}/${index}`)
-        });
+        }
+        // uploadBytes(currRef, media).then((snapshot) => {
+        //   console.log("Uploaded file ", `posts/${authState.user?.uid}/${postId}/${index}`, snapshot, media, `posts/${authState.user?.uid}/${postId}/${index}`)
+        // }).catch((err) => {
+        //   console.log("Error to upload", `posts/${authState.user?.uid}/${postId}/${index}`, err, media, `posts/${authState.user?.uid}/${postId}/${index}`)
+        // });
       })
       // mutation.mutate(postId)
       console.log("Here we go to add postFeed", postId)
@@ -75,6 +83,22 @@ const UploadFile = () => {
       // }))
       // refetch({ refetchPage: (page, index) => index === 0 })
       closeModal()
+      const new_post : IPost = {
+        ...post_,
+        hasLiked:false,
+        postId,
+        imgUrls:mediaUrls
+      }
+      if(setPostFeed && !err_){
+        setPostFeed((postFeed)=>{
+          let a = [postId, ...postFeed]
+          console.log("New postFeed",a)
+          return [postId, ...postFeed]
+        })
+        if(new_post && new_post.imgUrls && new_post.imgUrls.length > 0){
+          queryClient.setQueryData(['post', postId],new_post)
+        }
+      }
     } catch (err) {
       setErrorMsg("Some internal error occured!")
     } finally {
@@ -97,7 +121,7 @@ const UploadFile = () => {
     setMediaUrls(urls)
     return (() => {
       mediaUrls.forEach((file) => {
-        URL.revokeObjectURL(file)
+        // URL.revokeObjectURL(file)
       })
     })
   }, [mediaFiles, setMediaUrls])
